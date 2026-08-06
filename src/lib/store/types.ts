@@ -1,203 +1,3 @@
-@AGENTS.md
-# ArchStudio — Project Brain
-# Claude Code reads this file at the start of every session.
-# Do not modify this file unless a product decision has changed.
- 
----
- 
-## WHAT THIS PROJECT IS
- 
-ArchStudio is a SaaS firm management platform for architecture practices.
-It is a multi-tenant product — each architecture firm gets its own isolated workspace.
- 
-The product has three distinct portals:
-1. FIRM PORTAL — internal app for all staff (admin, team lead, staff, accounts)
-2. CLIENT PORTAL — consumer-facing, minimal, accessed via email OTP
-3. CONTRACTOR PORTAL — trade-specific, utilitarian, accessed via email OTP
-There is no backend. All state lives in Zustand stores.
-This is a frontend-only MVP. No API routes. No database. No real auth.
- 
----
- 
-## DESIGN SYSTEM — READ REFERENCES FIRST
- 
-> At the start of every session that touches UI, read every image in /references/
-> before writing any CSS, Tailwind class, or component.
-> Extract and write the following to src/styles/tokens.css as CSS custom properties:
- 
-```
---color-bg-canvas        main page background
---color-bg-sidebar       sidebar background
---color-bg-card          card and panel surfaces
---color-bg-card-hover    card hover state
---color-bg-input         form input background
---color-border           dividers, card borders
---color-border-strong    stronger separators
---color-text-primary     headings, strong labels
---color-text-secondary   body text
---color-text-muted       timestamps, metadata, placeholders
---color-accent           ONE accent color (buttons, active nav, progress)
---color-accent-muted     accent at low opacity (badge fills, hover states)
---color-success          completed, paid, confirmed states
---color-warning          overdue, alerts, pending states
---color-destructive      errors, delete actions
- 
---font-display           characterful face for headings
---font-body              readable face for all UI text
---font-mono              drawing numbers, codes
- 
---text-xs / --text-sm / --text-base / --text-lg / --text-xl
---radius-sm / --radius-md / --radius-lg
---spacing-unit           base unit (4px or 8px)
---shadow-card            card elevation (may be none if references use borders)
-```
- 
-Extract sidebar behavior from references:
-Is the sidebar dark or light? Floating or flush? Icon-collapse or full-hide?
-Set this as a comment in tokens.css so every session knows.
- 
-Override all shadcn/ui defaults to match these tokens.
-The software must look like the references, not like a shadcn template.
- 
-ARCHITECT-GRADE AESTHETIC:
-Users are architects with high visual standards. Every screen must feel precise,
-considered, and intentional. No decorative shadows. No colorful icon sets.
-No playful radius. Think Zaha Hadid firm's internal tooling.
-The firm portal is professional and dense.
-The client portal is calm and minimal.
-The contractor portal is utilitarian and clear.
- 
----
- 
-## TECH STACK
- 
-Framework:   Next.js 15, App Router, TypeScript strict (no any, no as casts)
-Styling:     Tailwind CSS v4 + CSS custom properties from tokens.css
-Components:  shadcn/ui (fully overridden to match design tokens)
-State:       Zustand with immer middleware
-Animation:   Framer Motion (purposeful only — entrance, drawers, layout)
-Icons:       Lucide React (always inherit text color, never colorful)
-Charts:      Recharts
-DnD:         @dnd-kit/core and @dnd-kit/sortable
-Dates:       date-fns
-Forms:       react-hook-form + zod
- 
----
- 
-## FILE STRUCTURE
- 
-```
-/references/             ← UI reference images (read before any UI work)
-/src
-  /app
-    (root)/page.tsx      ← firm selector (SaaS landing)
-    (firm-auth)/[firmSlug]/login/page.tsx
-    (firm-app)/[firmSlug]/
-      layout.tsx         ← sidebar + topbar shell
-      dashboard/page.tsx
-      projects/page.tsx
-      projects/[id]/page.tsx
-      tasks/page.tsx
-      time/page.tsx
-      leave/page.tsx
-      files/[projectId]/page.tsx
-      meetings/page.tsx
-      rfi/page.tsx
-      punchlist/[projectId]/page.tsx
-      site-reports/[projectId]/page.tsx
-      crm/page.tsx
-      finance/page.tsx
-      change-requests/page.tsx
-      variation-orders/page.tsx
-      settings/page.tsx
-    (client-portal)/client/[projectId]/
-      layout.tsx
-      page.tsx           ← overview + stage timeline
-      files/page.tsx
-      chat/page.tsx
-      invoices/page.tsx
-      requests/page.tsx
-    (client-auth)/client/login/page.tsx
-    (contractor-portal)/contractor/[projectId]/
-      layout.tsx
-      page.tsx           ← assigned drawings
-      rfi/page.tsx
-      progress/page.tsx
-      punchlist/page.tsx
-    (contractor-auth)/contractor/login/page.tsx
-    (super-admin)/super/page.tsx
-  /styles
-    tokens.css           ← all design tokens extracted from references
-    globals.css
-  /lib
-    /store
-      types.ts           ← all TypeScript types (see TYPE SYSTEM below)
-      auth.store.ts
-      firm.store.ts
-      project.store.ts
-      task.store.ts
-      time.store.ts
-      leave.store.ts
-      file.store.ts
-      request.store.ts
-      vo.store.ts
-      rfi.store.ts
-      punchlist.store.ts
-      sitereport.store.ts
-      meeting.store.ts
-      finance.store.ts
-      crm.store.ts
-      chat.store.ts
-      notification.store.ts
-      activity.store.ts
-    /demo
-      seed.ts            ← seedAllStores() with all demo data
-      /data
-        firms.ts
-        staff.ts
-        projects.ts
-        tasks.ts
-        files.ts
-        finance.ts
-        crm.ts
-        operations.ts
-  /components
-    /layout
-      Sidebar.tsx
-      Topbar.tsx
-      PortalHeader.tsx
-    /shared
-      StatusBadge.tsx
-      Avatar.tsx
-      Drawer.tsx
-      TaskDrawer.tsx
-      FileDrawer.tsx
-      EmptyState.tsx
-      SkeletonCard.tsx
-      SkeletonRow.tsx
-      CommandPalette.tsx
-      NotificationPanel.tsx
-      OTPInput.tsx
-      Toast.tsx          ← global toast via Zustand
-      ConfirmDialog.tsx
-    /dashboard/
-    /projects/
-    /tasks/
-    /time/
-    /crm/
-    /finance/
-    /portals/
-      /client/
-      /contractor/
-```
- 
----
- 
-## TYPE SYSTEM — src/lib/store/types.ts
- 
-Create this file exactly as shown. Do not deviate from these types.
- 
-```typescript
 export type Role = 'admin' | 'team_lead' | 'staff' | 'accounts'
 export type PortalRole = 'client' | 'contractor'
 export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'cancelled'
@@ -219,14 +19,14 @@ export type LeaveStatus = 'pending' | 'approved' | 'rejected'
 export type VOStatus = 'draft' | 'pending_client' | 'approved' | 'rejected'
 export type RequestStatus = 'pending' | 'fulfilled' | 'rejected'
 export type DrawingPrefix = 'A' | 'S' | 'E' | 'I' | 'L' | 'D' | 'P' | 'O'
- 
+
 export interface Firm {
   id: string; name: string; logo?: string; address: string
   phone: string; email: string; gstin: string; website?: string
   planType: 'starter' | 'professional' | 'enterprise'
   settings: FirmSettings; createdAt: string
 }
- 
+
 export interface FirmSettings {
   defaultFileRequestWindowDays: number
   clientApprovalReminderDays: number
@@ -236,40 +36,40 @@ export interface FirmSettings {
   maxClientSessions: number
   portalBranding: { primaryColor?: string; logoUrl?: string }
 }
- 
+
 export interface User {
   id: string; firmId: string; name: string; email: string; phone: string
   role: Role; designation: string; avatarInitials: string; avatarColor: string
   costRatePerHour: number; joinedAt: string
   status: 'active' | 'discontinued'; discontinuedAt?: string
 }
- 
+
 export interface Client {
   id: string; firmId: string; name: string; company?: string
   phone: string; email: string; address?: string; gstin?: string
   portalEnabled: boolean; notes?: string; createdAt: string
 }
- 
+
 export interface Contractor {
   id: string; firmId: string; name: string; company: string
   trade: string; phone: string; email: string; gstin?: string
   portalEnabled: boolean
 }
- 
+
 export interface TemplateStage {
   id: string; name: string; order: number; defaultDurationDays: number
   description: string; isClientApprovalRequired: boolean
   isPaymentMilestone: boolean; paymentPercentage?: number
   drawingTypesExpected: FileCategory[]
 }
- 
+
 export interface ProjectTemplate {
   id: string; firmId: string; name: string; description: string
   stages: TemplateStage[]
   feeStructure: 'lump_sum' | 'percentage' | 'per_stage'
   defaultFileRequestWindowDays: number; isDefault: boolean
 }
- 
+
 export interface ProjectStage {
   id: string; templateStageId?: string; name: string; order: number
   status: 'pending' | 'in_progress' | 'completed' | 'blocked'
@@ -284,7 +84,7 @@ export interface ProjectStage {
   }
   description: string; drawingTypesExpected: FileCategory[]; isCustom: boolean
 }
- 
+
 export interface Project {
   id: string; firmId: string; name: string; clientId: string; clientName: string
   contractorIds: string[]; templateId?: string; status: ProjectStatus
@@ -296,13 +96,13 @@ export interface Project {
   description?: string; fileRequestWindowDays: number
   chatEnabled: boolean; createdAt: string; updatedAt: string
 }
- 
+
 export interface Subtask {
   id: string; title: string; completed: boolean
   createdById: string; assignedToId: string
   createdAt: string; completedAt?: string
 }
- 
+
 export interface Task {
   id: string; firmId: string; projectId: string; stageId: string
   title: string; description?: string; assigneeId: string; assignerId: string
@@ -314,32 +114,32 @@ export interface Task {
   isBlocked: boolean; blockedReason?: string
   createdAt: string; updatedAt: string
 }
- 
+
 export interface TimeLog {
   id: string; firmId: string; userId: string; projectId: string
   stageId?: string; phase: string; startTime: string; endTime?: string
   durationMinutes?: number; notes?: string; date: string
   isEdited: boolean; editApprovedById?: string; createdAt: string
 }
- 
+
 export interface AttendanceRecord {
   id: string; firmId: string; userId: string; date: string
   status: 'present' | 'absent' | 'half_day' | 'on_leave'; leaveId?: string
 }
- 
+
 export interface LeaveRequest {
   id: string; firmId: string; userId: string; userName: string
   startDate: string; endDate: string; days: number; reason?: string
   status: LeaveStatus; reviewedById?: string; reviewedAt?: string
   rejectionNote?: string; createdAt: string
 }
- 
+
 export interface FileRevision {
   id: string; revisionNumber: number; uploadedById: string
   uploadedAt: string; notes?: string; fileSizeKb: number
   sharedWithClient: boolean; sharedWithContractorIds: string[]; sharedAt?: string
 }
- 
+
 export interface ProjectFile {
   id: string; firmId: string; projectId: string; stageId?: string
   drawingNumber?: string; name: string; category: FileCategory
@@ -348,7 +148,7 @@ export interface ProjectFile {
   approvedById?: string; approvedAt?: string
   tags?: string[]; createdAt: string; updatedAt: string
 }
- 
+
 export interface FileRequest {
   id: string; firmId: string; projectId: string
   requestedById: string; requesterType: 'client' | 'contractor'
@@ -357,7 +157,7 @@ export interface FileRequest {
   fulfilledById?: string; fulfilledAt?: string
   fulfilledFileId?: string; rejectionNote?: string; createdAt: string
 }
- 
+
 export interface VariationOrder {
   id: string; firmId: string; projectId: string; voNumber: string
   title: string; description: string; requestedByContractorId?: string
@@ -368,7 +168,7 @@ export interface VariationOrder {
   approvedByUserId?: string; approvedAt?: string
   createdAt: string; updatedAt: string
 }
- 
+
 export interface ChangeRequest {
   id: string; firmId: string; projectId: string; taskId?: string
   requestedByContractorId: string; contractorName: string
@@ -381,7 +181,7 @@ export interface ChangeRequest {
   rejectionNote?: string; linkedTaskId?: string
   createdAt: string; updatedAt: string
 }
- 
+
 export interface RFI {
   id: string; firmId: string; projectId: string; rfiNumber: string
   title: string; description: string
@@ -391,7 +191,7 @@ export interface RFI {
   respondedById?: string; responseText?: string; respondedAt?: string
   closedAt?: string; createdAt: string
 }
- 
+
 export interface PunchListItem {
   id: string; firmId: string; projectId: string; itemNumber: string
   description: string; location: string; photoDescription?: string
@@ -399,14 +199,14 @@ export interface PunchListItem {
   status: PunchListStatus; contractorResolvedAt?: string; contractorNote?: string
   architectConfirmedById?: string; architectConfirmedAt?: string; createdAt: string
 }
- 
+
 export interface DailySiteReport {
   id: string; firmId: string; projectId: string; date: string
   reportedById: string; weather?: string; workCompleted: string
   mistakesOrIssues?: string; materialsReceived?: string
   workersPresent?: number; createdAt: string
 }
- 
+
 export interface Meeting {
   id: string; firmId: string; projectId: string; title: string
   date: string; time: string; durationMinutes: number
@@ -416,7 +216,7 @@ export interface Meeting {
   expense?: { amount: number; description: string; submittedById: string }
   createdById: string; createdAt: string
 }
- 
+
 export interface Expense {
   id: string; firmId: string; userId: string; projectId?: string
   meetingId?: string; category: ExpenseCategory; amount: number
@@ -425,13 +225,13 @@ export interface Expense {
   approvedById?: string; approvedAt?: string
   receiptDescription?: string; createdAt: string
 }
- 
+
 export interface InvoiceLineItem {
   id: string; description: string; amount: number
   gstRate: number; gstAmount: number
   isAdHoc: boolean; milestoneStageId?: string
 }
- 
+
 export interface Invoice {
   id: string; firmId: string; projectId: string; clientId: string
   invoiceNumber: string; lineItems: InvoiceLineItem[]
@@ -440,16 +240,17 @@ export interface Invoice {
   paidDate?: string; paidAmount?: number; paymentNotes?: string
   createdById: string; createdAt: string
 }
- 
+
 export interface SalaryRecord {
   id: string; firmId: string; userId: string; month: string
   amount: number; status: 'pending' | 'paid'; paidDate?: string; paidById?: string
+  createdAt?: string
 }
- 
+
 export interface LeadNote {
   id: string; content: string; createdById: string; createdAt: string
 }
- 
+
 export interface Lead {
   id: string; firmId: string; name: string; company?: string
   phone: string; email: string; projectType: string; estimatedValue?: number
@@ -458,7 +259,7 @@ export interface Lead {
   convertedProjectId?: string; lostReason?: string
   createdAt: string; updatedAt: string
 }
- 
+
 export interface ChatMessage {
   id: string; firmId: string; projectId: string
   senderId: string; senderName: string; senderType: 'staff' | 'client'
@@ -466,7 +267,7 @@ export interface ChatMessage {
   mentions: Array<{ type: 'file' | 'drawing' | 'user'; id: string; label: string }>
   readBy: string[]; createdAt: string
 }
- 
+
 export type NotificationType =
   | 'task_assigned' | 'task_due_today' | 'task_overdue'
   | 'change_request_new' | 'change_request_resolved'
@@ -478,148 +279,15 @@ export type NotificationType =
   | 'leave_request_new' | 'leave_approved' | 'leave_rejected'
   | 'invoice_created' | 'invoice_overdue'
   | 'punch_list_item_resolved'
- 
+
 export interface Notification {
   id: string; firmId: string; userId: string; type: NotificationType
   title: string; body: string; read: boolean; linkTo?: string
   entityId?: string; createdAt: string
 }
- 
+
 export interface ActivityLog {
   id: string; firmId: string; userId: string; userName: string
   projectId?: string; entity: string; entityId: string
   action: string; description: string; createdAt: string
 }
-```
- 
----
- 
-## STORE RULES
- 
-Every Zustand action must do three things:
-1. Update state via immer produce
-2. Call `useActivityStore.getState().log(...)` — entity, action, description, projectId if relevant
-3. Call `useNotificationStore.getState().push(...)` — for all relevant recipients
-Every store query must filter by `firmId === currentFirm.id`.
-Data from Firm A must never appear in Firm B's view.
- 
----
- 
-## DEMO DATA — lib/demo/seed.ts
- 
-`seedAllStores()` must create two complete firms:
- 
-FIRM 1: Coastal Design Associates, Kozhikode, Kerala
-  - 12 staff across all roles
-  - 7 projects (5 active, 1 on-hold, 1 completed)
-  - 4 clients, 3 contractors
-  - 6 CRM leads (varied stages)
-  - 30+ tasks, some overdue, some due today
-  - Files with revision histories across projects
-  - 2 open invoices, 1 overdue
-  - 3 open RFIs, 5 punch list items
-  - 5 daily site reports
-  - 1 pending leave request
-  - Salary records for 3 months
-  - Chat messages on 2 projects
-FIRM 2: Forma Studio, Kochi (smaller — 3 staff, 2 projects, minimal data)
- 
----
- 
-## BUSINESS RULES — read carefully before building any feature
- 
-TASKS:
-- % complete on a project = closed tasks ÷ total tasks (never manual override)
-- When project status → on_hold or cancelled: all tasks set isBlocked=true
-- When project resumes: isBlocked cleared
-- When staff discontinued: their tasks remain but admin must reassign from Settings
-STAGE GATES:
-- Two stages per template require client approval before next stage unlocks
-- When stage marked complete: if isClientApprovalRequired, set clientApprovalRequestedAt
-- After firmSettings.clientApprovalReminderDays: send reminder notification
-- After clientApprovalEscalateDays: notify admin as "approval overdue"
-- Client approves → next stage status → in_progress
-- Client requests revision → creates task automatically for team lead with client's note
-FILES:
-- Drawing numbers auto-assigned on upload: A-001, S-001, E-001, I-001, L-001...
-  Counter per category per project (tracked in file.store.ts)
-- File status flow: informational → final or contractor_view → superseded
-- Informational files: visible to client with "For Discussion" badge, no download
-- Final files: visible to client with download
-- Contractor view: visible only to specifically assigned contractor
-- Sharing any file triggers simulated email (show toast: "Email sent to [recipient]")
-CHANGE REQUESTS (contractor only):
-- If impactsTimeline or impactsFee → assignedToId = admin
-- Otherwise → assignedToId = project teamLeadId
-- Approval updates linked task and sets pendingChangeRequestId = null
-VARIATION ORDERS:
-- Status: draft → pending_client → approved or rejected
-- Client approval on pending_client VOs shown in client portal
-- Approved VO → update project fee and timeline
-RFI:
-- Auto-numbered RFI-001, RFI-002 per project
-- Does not block project progress
-- Architect response closes the loop; architect then marks closed
-- Unresponded RFIs older than 3 days surface as alerts on dashboard
-LEAVE:
-- Staff requests → admin approves
-- Pre-approved leave: block task assignment and meeting scheduling that day
-- Last-minute approval: flag affected tasks as overdue, notify admin
-TIME TRACKING:
-- One active session per user at a time (enforce in store)
-- Adding time to past log: requires team lead note
-- Reducing time: user can do directly
-- Time logs double as attendance data
-FINANCE:
-- Invoices auto-number: INV-2025-001, INV-2025-002...
-- GST at 18% (CGST 9% + SGST 9%) on all client invoices
-- Ad-hoc charges added by admin/accounts only → append to open invoice or create new
-- Salary records only — no payroll calculation
-CLIENT PORTAL:
-- Email OTP auth (simulated — show 6-digit code in a toast for demo)
-- Max 3 concurrent sessions per client company
-- No access to: internal task details, staff names, cost rates, internal notes
-- Can see: progress, shared files, chat, invoices, their requests
-- Cannot raise change requests — only file requests for items in the project timeline
-CONTRACTOR PORTAL:
-- Sees only files tagged for their trade or explicitly shared with them
-- Communicates only via RFI and file requests — no access to project chat
----
- 
-## UI COMPONENT RULES
- 
-StatusBadge: every status in the system through one component.
-Colors: muted, desaturated fills (12% opacity). No loud greens or reds.
- 
-Avatar: initials fallback always. Deterministic color from name hash.
-Sizes: sm=24px, md=32px, lg=40px. Tooltip on hover.
- 
-Drawer: right-side slide, 440px, full-width mobile, ESC to close, backdrop click closes.
-Framer Motion: x: 440→0, 250ms ease-out.
- 
-EmptyState: every list and table must have one. Write specific copy, not "No data."
- 
-SkeletonCard/Row: show for 1.2 seconds on every data section mount.
- 
-Toast: bottom-right, 3 second auto-dismiss, max 3 stacked.
-Fire on: every create / update / approve / reject / status-change.
- 
-CommandPalette: ⌘K from anywhere. Search projects, tasks, files, staff, leads, RFIs.
- 
-All drawers and modals: ESC closes. Backdrop click closes.
-All interactive elements: visible focus state using accent color.
-Reduced motion: all animation durations → 0ms when prefers-reduced-motion.
-No any TypeScript. No raw hex colors in component files.
- 
----
- 
-## SESSION STARTUP CHECKLIST
- 
-At the start of every Claude Code session:
-1. Read this file (CLAUDE.md)
-2. Read TASKS.md — find current phase and task
-3. If the session involves any UI: view all images in /references/
-4. Read the existing src/ structure before writing new files
-5. Never delete or overwrite code already built without reading it first
-6. After completing work, update TASKS.md — mark done tasks, note any blockers
----

@@ -1,0 +1,122 @@
+/* ============================================================================
+   ArchStudio — Design Tokens
+   ============================================================================
+   EXTRACTED FROM /references/ (2026-08-01 pixel analysis of 10 images)
+   ----------------------------------------------------------------------------
+   Reference set summary:
+   - 5 images are dark-mode dashboards (dominant direction — confirmed by user)
+   - 1 image is a light dashboard (not selected)
+   - Largest/main reference (1253x628) defines the core surfaces:
+       canvas #080808, cards #181818, body text #A8A8A8, headings #F8F8F8,
+       accent rust-orange #F05030, sidebar #080808 (flush with canvas)
+   - Supporting dark refs: blue-tinted canvas #181820 (153514), green success
+     #50A040 (153533), teal variant #004040 (153624, not selected), warm black
+     #202018 (153609)
+   - Light ref (153345) provided the amber warning family #F0D050 / #D09030
+   ----------------------------------------------------------------------------
+   USER DECISIONS (2026-08-01):
+   - Theme: DARK  — firm portal is a dense dark professional tool
+   - Accent: RUST ORANGE  (one accent color, driven by the main dashboard ref)
+   ----------------------------------------------------------------------------
+   SIDEBAR BEHAVIOR (from references):
+   - DARK sidebar, flush with canvas (no floating card effect)
+   - Sidebar sits at --color-bg-sidebar, one step darker than page canvas
+   - Nav is icon + label; collapses to icon-only on mobile
+   ----------------------------------------------------------------------------
+   All values below are the design source of truth. No raw hex in components.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Surfaces --------------------------------------------------------- */
+  --color-bg-canvas: #0a0a0b;          /* page background — derived from #080808 */
+  --color-bg-sidebar: #070708;         /* one step darker than canvas — flush panel */
+  --color-bg-card: #131316;            /* cards, panels, drawer surfaces — from #181818 */
+  --color-bg-card-hover: #1a1a1e;      /* card hover state */
+  --color-bg-input: #0f0f12;           /* form input background (darker than card) */
+  --color-bg-subtle: #101013;          /* table stripes, inset wells, section fills */
+  --color-bg-elevated: #18181c;        /* popovers, dropdowns, command palette */
+
+  /* ---- Borders ---------------------------------------------------------- */
+  --color-border: #232327;             /* dividers, card borders — hairline, quiet */
+  --color-border-strong: #34343a;      /* stronger separators, active outlines */
+
+  /* ---- Text ------------------------------------------------------------- */
+  --color-text-primary: #f4f4f3;       /* headings, strong labels — from #F8F8F8 */
+  --color-text-secondary: #a8a8ac;     /* body text — from #A8A8A8 */
+  --color-text-muted: #6b6b70;         /* timestamps, metadata, placeholders */
+  --color-text-inverse: #0a0a0b;       /* text on accent fills */
+
+  /* ---- Accent (ONE accent — rust orange) -------------------------------- */
+  --color-accent: #e55230;             /* buttons, active nav, progress — refined #F05030 */
+  --color-accent-hover: #f06441;       /* accent hover/active */
+  --color-accent-muted: rgb(229 82 48 / 0.12);   /* badge fills, hover washes */
+  --color-accent-strong: rgb(229 82 48 / 0.22);  /* stronger washes, selected rows */
+
+  /* ---- Status ----------------------------------------------------------- */
+  --color-success: #52a45e;            /* completed, paid, confirmed — from #50A040 */
+  --color-success-muted: rgb(82 164 94 / 0.12);
+  --color-warning: #d9a03a;            /* overdue, alerts, pending — from amber #F0D050 */
+  --color-warning-muted: rgb(217 160 58 / 0.12);
+  --color-destructive: #e0483f;        /* errors, delete — true red, distinct from accent */
+  --color-destructive-muted: rgb(224 72 63 / 0.12);
+  --color-info: #5b8dd9;               /* informational accents, links on dark */
+  --color-info-muted: rgb(91 141 217 / 0.12);
+
+  /* ---- Typography ------------------------------------------------------- */
+  --font-display: "Archivo", system-ui, sans-serif;        /* headings — geometric, architectural */
+  --font-body: "Inter", system-ui, -apple-system, sans-serif; /* all UI text */
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace; /* drawing numbers, codes */
+
+  --text-xs: 0.75rem;      /* 12px — metadata, timestamps */
+  --text-sm: 0.8125rem;    /* 13px — secondary body */
+  --text-base: 0.875rem;   /* 14px — default UI text (dense, professional) */
+  --text-lg: 1rem;         /* 16px — card titles, section labels */
+  --text-xl: 1.25rem;      /* 20px — page titles */
+  --text-2xl: 1.5rem;      /* 24px — dashboard greetings */
+
+  /* ---- Radius (precise, no playful pill shapes) ------------------------- */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* ---- Spacing ---------------------------------------------------------- */
+  --spacing-unit: 4px;     /* base unit — everything scales from this */
+
+  /* ---- Elevation -------------------------------------------------------- */
+  /* References use flat surfaces + hairlines. Shadows exist only to separate
+     floating layers (drawers, popovers) from the canvas. */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-elevated: 0 4px 16px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-drawer: -8px 0 32px rgb(0 0 0 / 0.5);
+
+  /* ---- Motion ----------------------------------------------------------- */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reduced motion — every animation collapses to 0ms (enforced app-wide) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus — visible focus state using accent color (CLAUDE.md UI rules) */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Selection — accent-tinted */
+::selection {
+  background: var(--color-accent-strong);
+  color: var(--color-text-primary);
+}

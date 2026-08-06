@@ -1,0 +1,157 @@
+@import "./tokens.css";
+@import "tailwindcss";
+
+/* ============================================================================
+   ArchStudio — Global styles / Tailwind v4 theme bridge
+   Maps the design tokens (src/styles/tokens.css) into Tailwind utilities.
+   Every color utility (bg-canvas, text-muted, border-border, ...) resolves to
+   a token. shadcn/ui variables are remapped to the same tokens so any shadcn
+   component added later inherits the ArchStudio design system automatically.
+   ========================================================================== */
+
+@theme inline {
+  /* ---- Surfaces ---- */
+  --color-canvas: var(--color-bg-canvas);
+  --color-sidebar: var(--color-bg-sidebar);
+  --color-card: var(--color-bg-card);
+  --color-card-hover: var(--color-bg-card-hover);
+  --color-input: var(--color-bg-input);
+  --color-subtle: var(--color-bg-subtle);
+  --color-elevated: var(--color-bg-elevated);
+
+  /* ---- Borders ---- */
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+
+  /* ---- Text ---- */
+  --color-foreground: var(--color-text-primary);
+  --color-text: var(--color-text-primary);
+  --color-secondary: var(--color-text-secondary);
+  --color-muted: var(--color-text-muted);
+  --color-inverse: var(--color-text-inverse);
+
+  /* ---- Accent ---- */
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-muted: var(--color-accent-muted);
+  --color-accent-strong: var(--color-accent-strong);
+
+  /* ---- Status ---- */
+  --color-success: var(--color-success);
+  --color-success-muted: var(--color-success-muted);
+  --color-warning: var(--color-warning);
+  --color-warning-muted: var(--color-warning-muted);
+  --color-destructive: var(--color-destructive);
+  --color-destructive-muted: var(--color-destructive-muted);
+  --color-info: var(--color-info);
+  --color-info-muted: var(--color-info-muted);
+
+  /* ---- Typography ---- */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  /* ---- Radius ---- */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  /* ---- Shadow ---- */
+  --shadow-card: var(--shadow-card);
+  --shadow-elevated: var(--shadow-elevated);
+  --shadow-drawer: var(--shadow-drawer);
+
+  /* ---- Motion ---- */
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+}
+
+/* ============================================================================
+   shadcn/ui variable layer — remapped to ArchStudio tokens
+   ========================================================================== */
+:root {
+  --background: var(--color-bg-canvas);
+  --foreground: var(--color-text-primary);
+
+  --card: var(--color-bg-card);
+  --card-foreground: var(--color-text-primary);
+
+  --popover: var(--color-bg-elevated);
+  --popover-foreground: var(--color-text-primary);
+
+  --primary: var(--color-accent);
+  --primary-foreground: var(--color-text-inverse);
+
+  --secondary: var(--color-bg-subtle);
+  --secondary-foreground: var(--color-text-secondary);
+
+  --muted: var(--color-bg-subtle);
+  --muted-foreground: var(--color-text-muted);
+
+  --accent: var(--color-accent-muted);
+  --accent-foreground: var(--color-accent);
+
+  --destructive: var(--color-destructive);
+  --destructive-foreground: var(--color-text-primary);
+
+  --border: var(--color-border);
+  --input: var(--color-bg-input);
+  --ring: var(--color-accent);
+
+  --radius: var(--radius-md);
+
+  --sidebar: var(--color-bg-sidebar);
+  --sidebar-foreground: var(--color-text-secondary);
+  --sidebar-primary: var(--color-accent);
+  --sidebar-primary-foreground: var(--color-text-inverse);
+  --sidebar-accent: var(--color-accent-muted);
+  --sidebar-accent-foreground: var(--color-text-primary);
+  --sidebar-border: var(--color-border);
+  --sidebar-ring: var(--color-accent);
+}
+
+/* ---- Base ---- */
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  height: 100%;
+  background: var(--color-bg-canvas);
+}
+
+body {
+  min-height: 100%;
+  background: var(--color-bg-canvas);
+  color: var(--color-text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Scrollbars — quiet, matching the dark surfaces */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
