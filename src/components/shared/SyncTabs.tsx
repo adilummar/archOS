@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useActivityStore } from "@/lib/store/activity.store";
-import { useAuthStore } from "@/lib/store/auth.store";
 import { useChatStore } from "@/lib/store/chat.store";
 import { useCrmStore } from "@/lib/store/crm.store";
 import { useFileStore } from "@/lib/store/file.store";
@@ -27,7 +26,6 @@ export function SyncTabs() {
 
       switch (e.key) {
         case "archos-activity": useActivityStore.persist.rehydrate(); break;
-        case "archos-auth": useAuthStore.persist.rehydrate(); break;
         case "archos-chat": useChatStore.persist.rehydrate(); break;
         case "archos-crm": useCrmStore.persist.rehydrate(); break;
         case "archos-file": useFileStore.persist.rehydrate(); break;

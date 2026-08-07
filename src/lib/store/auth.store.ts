@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { Firm, User } from "./types";
 
 export interface PortalSession {
@@ -75,6 +75,9 @@ export const useAuthStore = create<AuthState>()(
       });
     },
   })),
-    { name: "archos-auth" }
+  {
+    name: "archos-auth",
+    storage: createJSONStorage(() => sessionStorage),
+  }
   )
-);;
+);
