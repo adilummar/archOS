@@ -130,20 +130,7 @@ export function OverviewTab({ project }: Props) {
                     >
                       {stage.name}
                     </span>
-                    {stage.isPaymentMilestone && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 500,
-                          color: "var(--color-success)",
-                          background: "var(--color-success-muted)",
-                          padding: "1px 6px",
-                          borderRadius: "var(--radius-sm)",
-                        }}
-                      >
-                        {stage.paymentPercentage}% Milestone
-                      </span>
-                    )}
+
                     {needsApproval && (
                       <span
                         style={{

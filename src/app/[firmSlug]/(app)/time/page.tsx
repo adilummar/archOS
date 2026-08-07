@@ -469,7 +469,7 @@ export default function TimePage() {
                   color: "var(--color-text-primary)",
                 }}
                 cursor={{ fill: "var(--color-bg-input)" }}
-                formatter={(v: number) => [`${v}h`, "Hours"]}
+                formatter={(v: any) => [`${v}h`, "Hours"]}
               />
               <Bar
                 dataKey="hours"
@@ -520,7 +520,7 @@ export default function TimePage() {
                     fontSize: 11,
                     color: "var(--color-text-primary)",
                   }}
-                  formatter={(v: number) => [`${v}h`, ""]}
+                  formatter={(v: any) => [`${v}h`, ""]}
                 />
               </PieChart>
             </ResponsiveContainer>

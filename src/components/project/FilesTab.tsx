@@ -44,6 +44,7 @@ export function FilesTab({ project }: Props) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [expandedFile, setExpandedFile] = useState<string | null>(null);
 
   const isLead = user?.role === "admin" || user?.role === "team_lead";
 

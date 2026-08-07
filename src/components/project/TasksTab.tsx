@@ -305,7 +305,7 @@ function KanbanColumn({
   label: string;
   color: string;
   tasks: Task[];
-  users: ReturnType<typeof useFirmStore>["users"];
+  users: import("@/lib/store/types").User[];
   onTaskClick: (id: string) => void;
 }) {
   return (

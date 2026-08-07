@@ -381,7 +381,7 @@ export function NewProjectDrawer({ open, onClose }: Props) {
                         transition: "all var(--duration-fast)",
                       }}
                     >
-                      <Avatar name={u.name} color={u.avatarColor} initials={u.avatarInitials} size="xs" />
+                      <Avatar name={u.name} color={u.avatarColor} initials={u.avatarInitials} size="sm" />
                       {u.name.split(" ")[0]}
                     </button>
                   );

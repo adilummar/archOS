@@ -307,7 +307,6 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
             type="text"
             value={titleEdit}
             onChange={(e) => setTitleEdit(e.target.value)}
-            onBlur={handleTitleBlur}
             disabled={readonly}
             style={{
               fontSize: "20px",
