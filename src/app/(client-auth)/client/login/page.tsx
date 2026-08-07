@@ -17,7 +17,8 @@ import { seedAllStores } from "@/lib/demo/seed";
 export default function ClientLoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const clients = useFirmStore((s) => s.clients.filter((c) => c.portalEnabled));
+  const allClients = useFirmStore((s) => s.clients);
+  const clients = allClients.filter((c) => c.portalEnabled);
 
   useEffect(() => {
     seedAllStores();
