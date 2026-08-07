@@ -5,46 +5,41 @@
  * Simulates direct email login for clients.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { useFirmStore } from "@/lib/store/firm.store";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useProjectStore } from "@/lib/store/project.store";
 import { toast } from "@/lib/store/toast.store";
 import { Building2, ArrowRight } from "lucide-react";
+import { seedAllStores } from "@/lib/demo/seed";
 
 export default function ClientLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const clients = useFirmStore((s) => s.clients.filter((c) => c.portalEnabled));
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
+  useEffect(() => {
+    seedAllStores();
+  }, []);
 
+  const handleLogin = (clientId: string) => {
     setLoading(true);
 
     // Simulate network delay
     setTimeout(() => {
       setLoading(false);
 
-      // Search all clients for this email
       const { clients, firms } = useFirmStore.getState();
-      const client = clients.find((c) => c.email.toLowerCase() === email.toLowerCase());
+      const client = clients.find((c) => c.id === clientId);
 
       if (!client) {
-        toast("No client portal account found for this email.", "error");
-        return;
-      }
-
-      if (!client.portalEnabled) {
-        toast("Your portal access is disabled. Please contact your architect.", "error");
+        toast("No client portal account found.", "error");
         return;
       }
 
       // Check max sessions
-      const firm = firms.find(f => f.id === client.firmId);
+      const firm = firms.find((f) => f.id === client.firmId);
       const maxSessions = firm?.settings.maxClientSessions || 3;
       const currentSessions = parseInt(localStorage.getItem(`sessions_${client.id}`) || "0", 10);
       
@@ -65,9 +60,9 @@ export default function ClientLoginPage() {
       });
 
       // Find client's primary project to redirect
-      const project = useProjectStore.getState().projects.find(p => p.clientId === client.id);
+      const project = useProjectStore.getState().projects.find((p) => p.clientId === client.id);
       
-      toast("Welcome back!", "success");
+      toast(`Welcome back, ${client.name}!`, "success");
       
       if (project) {
         router.push(`/client/${project.id}`);
@@ -75,7 +70,7 @@ export default function ClientLoginPage() {
         toast("No active projects found for your account.", "error");
         router.push(`/client/dashboard`);
       }
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -126,61 +121,59 @@ export default function ClientLoginPage() {
             Client Login
           </h1>
           <p style={{ margin: "0 0 32px", fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-            Enter your email to access your project dashboard.
+            Select your account to access the dashboard.
           </p>
 
-          <form onSubmit={handleEmailSubmit}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 24 }}>
-              <label style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--color-text-primary)" }}>
-                Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="client@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoFocus
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {clients.map((client) => (
+              <button
+                key={client.id}
+                onClick={() => handleLogin(client.id)}
+                disabled={loading}
                 style={{
                   width: "100%",
-                  height: 40,
-                  padding: "0 14px",
+                  height: 56,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "0 16px",
                   background: "var(--color-bg-input)",
                   border: "1px solid var(--color-border)",
-                  borderRadius: "var(--radius-sm)",
-                  color: "var(--color-text-primary)",
-                  fontSize: "var(--text-sm)",
-                  outline: "none",
-                  transition: "border-color var(--duration-fast)",
+                  borderRadius: "var(--radius-md)",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  transition: "all var(--duration-fast)",
                 }}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading || !email.trim()}
-              style={{
-                width: "100%",
-                height: 44,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                background: "var(--color-accent)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "var(--text-sm)",
-                fontWeight: 500,
-                cursor: loading || !email.trim() ? "not-allowed" : "pointer",
-                opacity: loading || !email.trim() ? 0.7 : 1,
-                transition: "opacity var(--duration-fast)",
-              }}
-            >
-              {loading ? "Logging in..." : "Login to Portal"}
-              {!loading && <ArrowRight size={16} />}
-            </button>
-          </form>
+                onMouseOver={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.borderColor = "var(--color-accent)";
+                    e.currentTarget.style.background = "var(--color-bg-card-hover)";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.borderColor = "var(--color-border)";
+                    e.currentTarget.style.background = "var(--color-bg-input)";
+                  }
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--color-text-primary)" }}>
+                    {client.name}
+                  </span>
+                  {client.company && (
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
+                      {client.company}
+                    </span>
+                  )}
+                </div>
+                <ArrowRight size={16} style={{ color: "var(--color-text-muted)" }} />
+              </button>
+            ))}
+          </div>
         </div>
       </main>
     </div>
   );
 }
+
