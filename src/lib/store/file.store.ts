@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type {
   ProjectFile,
   FileStatus,
@@ -64,7 +65,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useFileStore = create<FileState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     files: [],
 
     uploadFile: (input) => {
@@ -243,5 +245,7 @@ export const useFileStore = create<FileState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-file" }
+  )
+);;

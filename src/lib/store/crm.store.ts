@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { Lead, LeadStage, LeadSource, LeadNote } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -36,7 +37,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useCrmStore = create<CrmState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     leads: [],
 
     addLead: (input) => {
@@ -154,5 +156,7 @@ export const useCrmStore = create<CrmState>()(
         description: `Lead "${existing.name}" converted to project "${project.name}"`,
       });
     },
-  }))
-);
+  })),
+    { name: "archos-crm" }
+  )
+);;

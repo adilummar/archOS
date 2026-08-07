@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type {
   Client,
   Contractor,
@@ -37,7 +38,8 @@ interface FirmState {
 }
 
 export const useFirmStore = create<FirmState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     firms: [],
     users: [],
     clients: [],
@@ -223,5 +225,7 @@ export const useFirmStore = create<FirmState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-firm" }
+  )
+);;

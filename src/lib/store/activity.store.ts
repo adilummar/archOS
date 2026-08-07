@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { ActivityLog } from "./types";
 import { uid, nowIso } from "./uid";
 
@@ -21,7 +22,8 @@ interface ActivityState {
 }
 
 export const useActivityStore = create<ActivityState>()(
-  immer((set) => ({
+  persist(
+    immer((set) => ({
     logs: [],
 
     log: (input) => {
@@ -41,5 +43,7 @@ export const useActivityStore = create<ActivityState>()(
         state.logs.unshift(entry); // newest first
       });
     },
-  }))
-);
+  })),
+    { name: "archos-activity" }
+  )
+);;

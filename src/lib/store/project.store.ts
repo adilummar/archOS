@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { Project, ProjectStage } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -47,7 +48,8 @@ const firmStaffIds = (firmId: string): string[] =>
     .map((u) => u.id);
 
 export const useProjectStore = create<ProjectState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     projects: [],
 
     addProject: (project) => {
@@ -344,5 +346,7 @@ export const useProjectStore = create<ProjectState>()(
         description: `Stage "${stage.name}" force-completed by admin`,
       });
     },
-  }))
-);
+  })),
+    { name: "archos-project" }
+  )
+);;

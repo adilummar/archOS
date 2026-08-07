@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { Meeting, MeetingMode, Expense } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -34,7 +35,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useMeetingStore = create<MeetingState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     meetings: [],
 
     add: (input) => {
@@ -156,5 +158,7 @@ export const useMeetingStore = create<MeetingState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-meeting" }
+  )
+);;

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { DailySiteReport } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useFirmStore } from "./firm.store";
@@ -16,7 +17,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useSitereportStore = create<SitereportState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     reports: [],
 
     add: (input) => {
@@ -57,5 +59,7 @@ export const useSitereportStore = create<SitereportState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-sitereport" }
+  )
+);;

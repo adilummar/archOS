@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { Notification, NotificationType } from "./types";
 import { uid, nowIso } from "./uid";
 
@@ -23,7 +24,8 @@ interface NotificationState {
 }
 
 export const useNotificationStore = create<NotificationState>()(
-  immer((set) => ({
+  persist(
+    immer((set) => ({
     notifications: [],
 
     push: (input) => {
@@ -59,5 +61,7 @@ export const useNotificationStore = create<NotificationState>()(
         });
       });
     },
-  }))
-);
+  })),
+    { name: "archos-notification" }
+  )
+);;

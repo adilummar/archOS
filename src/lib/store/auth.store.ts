@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { Firm, User } from "./types";
 
 export interface PortalSession {
@@ -25,7 +26,8 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  immer((set) => ({
+  persist(
+    immer((set) => ({
     user: null,
     firm: null,
     portalSession: null,
@@ -72,5 +74,7 @@ export const useAuthStore = create<AuthState>()(
         }
       });
     },
-  }))
-);
+  })),
+    { name: "archos-auth" }
+  )
+);;

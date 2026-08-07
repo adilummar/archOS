@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type {
   Expense,
   Invoice,
@@ -63,7 +64,8 @@ const staffName = (userId: string): string =>
 const currentYear = () => new Date().getFullYear();
 
 export const useFinanceStore = create<FinanceState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     expenses: [],
     invoices: [],
     salaries: [],
@@ -383,5 +385,7 @@ export const useFinanceStore = create<FinanceState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-finance" }
+  )
+);;

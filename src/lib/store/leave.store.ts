@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { LeaveRequest } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -26,7 +27,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useLeaveStore = create<LeaveState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     requests: [],
 
     submit: (input) => {
@@ -123,5 +125,7 @@ export const useLeaveStore = create<LeaveState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-leave" }
+  )
+);;

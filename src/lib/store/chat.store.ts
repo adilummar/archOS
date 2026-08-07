@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { ChatMessage } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -25,7 +26,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useChatStore = create<ChatState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     messages: [],
 
     send: (input) => {
@@ -71,5 +73,7 @@ export const useChatStore = create<ChatState>()(
         if (m && !m.readBy.includes(userId)) m.readBy.push(userId);
       });
     },
-  }))
-);
+  })),
+    { name: "archos-chat" }
+  )
+);;

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { FileRequest } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -41,7 +42,8 @@ const requesterName = (type: RequesterType, id: string): string => {
 };
 
 export const useRequestStore = create<RequestState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     fileRequests: [],
 
     create: (input) => {
@@ -132,5 +134,7 @@ export const useRequestStore = create<RequestState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-request" }
+  )
+);;

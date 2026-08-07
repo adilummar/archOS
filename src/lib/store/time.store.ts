@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { TimeLog, AttendanceRecord } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useFirmStore } from "./firm.store";
@@ -40,7 +41,8 @@ const minutesBetween = (start: string, end: string): number =>
   Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000));
 
 export const useTimeStore = create<TimeState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     timeLogs: [],
     attendance: [],
     activeSessions: [],
@@ -187,5 +189,7 @@ export const useTimeStore = create<TimeState>()(
         else state.attendance.push(record);
       });
     },
-  }))
-);
+  })),
+    { name: "archos-time" }
+  )
+);;

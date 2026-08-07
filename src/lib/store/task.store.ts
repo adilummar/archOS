@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { Task, TaskStatus, Priority, ApprovalStatus } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -43,7 +44,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useTaskStore = create<TaskState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     tasks: [],
 
     addTask: (input) => {
@@ -285,8 +287,10 @@ export const useTaskStore = create<TaskState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-task" }
+  )
+);;
 
 /** Derived: % complete = closed (approved + done) ÷ total. Never manually overridden. */
 export const projectCompletion = (

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { VariationOrder, VOStatus } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -33,7 +34,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useVoStore = create<VoState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     variationOrders: [],
 
     create: (input) => {
@@ -215,5 +217,7 @@ export const useVoStore = create<VoState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-vo" }
+  )
+);;

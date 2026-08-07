@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { PunchListItem } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -28,7 +29,8 @@ const firmStaffIds = (firmId: string): string[] =>
     .map((u) => u.id);
 
 export const usePunchlistStore = create<PunchlistState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     items: [],
 
     addItem: (input) => {
@@ -147,5 +149,7 @@ export const usePunchlistStore = create<PunchlistState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-punchlist" }
+  )
+);;

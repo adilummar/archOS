@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { persist } from "zustand/middleware";
 import type { RFI, Priority } from "./types";
 import { useActivityStore } from "./activity.store";
 import { useNotificationStore } from "./notification.store";
@@ -32,7 +33,8 @@ const staffName = (userId: string): string =>
   useFirmStore.getState().users.find((u) => u.id === userId)?.name ?? "Staff";
 
 export const useRfiStore = create<RfiState>()(
-  immer((set, get) => ({
+  persist(
+    immer((set, get) => ({
     rfis: [],
 
     create: (input) => {
@@ -145,5 +147,7 @@ export const useRfiStore = create<RfiState>()(
         });
       }
     },
-  }))
-);
+  })),
+    { name: "archos-rfi" }
+  )
+);;
