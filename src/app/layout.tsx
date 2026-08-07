@@ -25,6 +25,8 @@ export const metadata: Metadata = {
   description: "SaaS firm management platform for architecture practices",
 };
 
+import { SyncTabs } from "@/components/shared/SyncTabs";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,7 +37,10 @@ export default function RootLayout({
       lang="en"
       className={`${archivo.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <SyncTabs />
+      </body>
     </html>
   );
 }
