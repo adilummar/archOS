@@ -35,7 +35,7 @@ export default function ClientInvoicesPage() {
   };
 
   const handleDownloadInvoice = (invoiceNumber: string) => {
-    toast(`Downloading Invoice ${invoiceNumber}...`, "info");
+    toast(`Downloading Invoice ${invoiceNumber}...`, "default");
   };
 
   return (

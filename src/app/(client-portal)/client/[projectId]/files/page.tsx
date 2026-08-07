@@ -39,11 +39,11 @@ export default function ClientFilesPage() {
   });
 
   const handleDownload = (fileName: string) => {
-    toast(`Downloading ${fileName}...`, "info");
+    toast(`Downloading ${fileName}...`, "default");
   };
 
   const handleView = (fileName: string) => {
-    toast(`Opening ${fileName} in viewer...`, "info");
+    toast(`Opening ${fileName} in viewer...`, "default");
   };
 
   const handleRequestFile = (e: React.FormEvent) => {

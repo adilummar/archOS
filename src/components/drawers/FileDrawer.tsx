@@ -223,7 +223,7 @@ export function FileDrawer({ fileId, project, onClose }: FileDrawerProps) {
               <button
                 onClick={() => {
                   setFileApproval(file.id, "revision_requested", { approvedById: user.id });
-                  toast(`"${file.name}" sent back for revision`, "info");
+                  toast(`"${file.name}" sent back for revision`, "default");
                 }}
                 style={{
                   flex: 1,

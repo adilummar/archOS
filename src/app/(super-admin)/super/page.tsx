@@ -125,13 +125,9 @@ export default function SuperAdminPage() {
                   <tr key={firm.id} style={{ borderTop: "1px solid var(--color-border)" }}>
                     <td style={{ padding: "16px 24px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        {firm.logoUrl ? (
-                          <img src={firm.logoUrl} alt={firm.name} style={{ width: 32, height: 32, borderRadius: 4, objectFit: "cover" }} />
-                        ) : (
                           <div style={{ width: 32, height: 32, borderRadius: 4, background: "var(--color-bg-input)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)", fontWeight: 600, fontSize: 14 }}>
                             {firm.name.charAt(0)}
                           </div>
-                        )}
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--color-text-primary)" }}>
                           {firm.name}
                         </span>
@@ -141,10 +137,10 @@ export default function SuperAdminPage() {
                       <span style={{ 
                         fontSize: 11, fontWeight: 600, textTransform: "uppercase",
                         padding: "4px 8px", borderRadius: 4,
-                        background: firm.plan === 'enterprise' ? "var(--color-accent-muted)" : "var(--color-info-muted)",
-                        color: firm.plan === 'enterprise' ? "var(--color-accent)" : "var(--color-info)",
+                        background: firm.planType === 'enterprise' ? "var(--color-accent-muted)" : "var(--color-info-muted)",
+                        color: firm.planType === 'enterprise' ? "var(--color-accent)" : "var(--color-info)",
                       }}>
-                        {firm.plan}
+                        {firm.planType}
                       </span>
                     </td>
                     <td style={{ padding: "16px 24px", fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", textAlign: "right" }}>

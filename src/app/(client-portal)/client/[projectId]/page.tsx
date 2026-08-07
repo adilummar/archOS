@@ -6,7 +6,6 @@ import { useProjectStore } from "@/lib/store/project.store";
 import { useFirmStore } from "@/lib/store/firm.store";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Card } from "@/components/shared/Card"; // Will need to define or replace with standard div
 import { toast } from "@/lib/store/toast.store";
 import { CheckCircle2, Clock, AlertTriangle, ArrowRight, MessageSquareX } from "lucide-react";
 import { differenceInDays, parseISO } from "date-fns";

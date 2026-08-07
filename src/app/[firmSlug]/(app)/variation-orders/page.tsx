@@ -885,7 +885,7 @@ export default function VariationOrdersPage() {
   const handleClientReject = (vo: VariationOrder, note: string) => {
     clientReject(vo.id, note);
     setRejectTarget(null);
-    toast(`${vo.voNumber} marked as client rejected`, "info");
+    toast(`${vo.voNumber} marked as client rejected`, "default");
   };
 
   if (!user || !firm) return null;
