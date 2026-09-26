@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Building2, LogIn, Eye, EyeOff } from "lucide-react";

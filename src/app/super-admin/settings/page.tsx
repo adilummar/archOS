@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");

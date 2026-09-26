@@ -1,5 +1,5 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/app/[firmSlug]/login/page.tsx', 'utf8');
+let content = fs.readFileSync('src/app/super-admin/login/page.tsx', 'utf8');
 
 if (!content.includes('PasswordInput')) {
   content = content.replace(
@@ -12,6 +12,6 @@ if (!content.includes('PasswordInput')) {
     `<PasswordInput required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary pr-10" />`
   );
   
-  fs.writeFileSync('src/app/[firmSlug]/login/page.tsx', content);
-  console.log("Patched login page");
+  fs.writeFileSync('src/app/super-admin/login/page.tsx', content);
+  console.log("Patched super-admin login page");
 }

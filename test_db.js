@@ -1,8 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-
+const prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
 async function main() {
-  const rs = await prisma.$queryRawUnsafe("SELECT current_user, usesuper, usecreatedb, userepl, usebypassrls FROM pg_user WHERE usename = current_user");
-  console.log(rs);
+  const admins = await prisma.platformAdmin.findMany();
+  console.log("Admins in DB:", admins);
 }
-main().finally(() => prisma.$disconnect());
+main().catch(console.error).finally(() => prisma.$disconnect());

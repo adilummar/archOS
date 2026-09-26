@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useRouter, useParams } from "next/navigation";
 import { useAuthStore } from "@/lib/store/auth.store";
 
@@ -129,9 +130,9 @@ export default function OnboardingWizard() {
         <form onSubmit={handleStep0} className="flex flex-col gap-4">
           <h2 className="text-xl font-bold mb-2">Secure Your Account</h2>
           <p className="text-muted text-sm mb-4">You are using a temporary password. Please set a new permanent password.</p>
-          <input type="password" required placeholder="Temporary Password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary" />
-          <input type="password" required placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary" />
-          <input type="password" required placeholder="Confirm New Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary" />
+          <PasswordInput required placeholder="Temporary Password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary pr-10" />
+          <PasswordInput required placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary pr-10" />
+          <PasswordInput required placeholder="Confirm New Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary pr-10" />
           <button type="submit" disabled={loading} className="mt-4 p-2 bg-accent text-white rounded font-medium hover:bg-accent-muted disabled:opacity-50">Continue</button>
         </form>
       )}

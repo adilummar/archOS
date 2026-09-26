@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useRouter } from "next/navigation";
 
 export default function SuperAdminLogin() {
@@ -36,7 +37,7 @@ export default function SuperAdminLogin() {
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted font-medium">Password</label>
-          <input type="password" required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary" />
+          <PasswordInput required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="p-2 border border-border rounded bg-canvas text-primary pr-10" />
         </div>
         <button type="submit" className="mt-4 w-full p-2 bg-accent text-white rounded font-medium hover:bg-accent-muted transition-colors">
           Sign In
