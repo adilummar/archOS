@@ -1,10 +1,13 @@
 "use client";
 import { ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function SuperAdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isLoginPage = pathname === "/super-admin/login";
 
   const handleSignOut = async () => {
     await fetch("/api/auth/super-admin/logout", { method: "POST" });
@@ -13,7 +16,7 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
 
   return (
     <div className="flex h-screen bg-canvas text-primary font-sans text-sm">
-      <aside className="w-64 bg-sidebar border-r border-border flex flex-col p-4 shrink-0">
+      {!isLoginPage && (<aside className="w-64 bg-sidebar border-r border-border flex flex-col p-4 shrink-0">
         <div className="mb-8 px-2">
           <h1 className="font-bold text-lg text-accent tracking-wider">ARCH OS <span className="text-xs text-muted">PLATFORM</span></h1>
         </div>
@@ -28,8 +31,8 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
         >
           Sign Out
         </button>
-      </aside>
-      <main className="flex-1 overflow-auto bg-canvas relative p-8">
+      </aside>)}
+      <main className={`flex-1 overflow-auto bg-canvas relative ${isLoginPage ? "" : "p-8"}`}>
         {children}
       </main>
     </div>
