@@ -41,6 +41,8 @@ export async function GET() {
             website: true,
             logo: true,
             planType: true,
+            onboardingState: true,
+            enabledFeatures: true,
             createdAt: true,
           },
         },

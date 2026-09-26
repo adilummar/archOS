@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         role: true,
         status: true,
         passwordHash: true,
-        firm: { select: { id: true, name: true, slug: true, status: true, onboardingState: true } },
+        firm: { select: { id: true, name: true, slug: true, status: true, onboardingState: true, enabledFeatures: true } },
       },
     });
 
