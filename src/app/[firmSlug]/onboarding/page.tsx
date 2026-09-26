@@ -103,7 +103,13 @@ export default function OnboardingWizard() {
 
   const handleComplete = async () => {
     setLoading(true);
-    await fetch("/api/v1/onboarding/complete", { method: "POST" });
+    const res = await fetch("/api/v1/onboarding/complete", { method: "POST" });
+    if (!res.ok) {
+      setLoading(false);
+      const data = await res.json();
+      setError(`Failed to complete onboarding: ${data.error || res.statusText}`);
+      return;
+    }
     if (user && firm) login(user, { ...firm, onboardingState: "COMPLETED" });
     router.push(`/${params.firmSlug}/dashboard`);
   };
