@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { SkeletonCard } from "@/components/shared/Skeleton";
 import { useFinanceStore } from "@/lib/store/finance.store";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useFirmStore } from "@/lib/store/firm.store";
@@ -16,6 +18,13 @@ export default function ClientInvoicesPage() {
   const { invoices } = useFinanceStore();
   const { portalSession } = useAuthStore();
   const { firms } = useFirmStore();
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!portalSession) return null;
 
@@ -52,7 +61,9 @@ export default function ClientInvoicesPage() {
 
       {/* Invoices List */}
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        {clientInvoices.length === 0 ? (
+        {isLoading ? (
+          <SkeletonCard count={3} height={200} />
+        ) : clientInvoices.length === 0 ? (
           <div style={{
             background: "var(--color-bg-card)",
             border: "1px solid var(--color-border)",

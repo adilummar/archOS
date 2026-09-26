@@ -20,6 +20,7 @@ import {
   CalendarOff,
   FileText,
   Users,
+  Users2,
   MessageSquare,
   BarChart2,
   Receipt,
@@ -29,6 +30,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
+  UserCheck,
 } from "lucide-react";
 
 interface NavItem {
@@ -36,6 +38,7 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   allowedRoles?: Role[];
+  requiredFeature?: string;
 }
 
 interface NavGroup {
@@ -43,35 +46,47 @@ interface NavGroup {
   items: NavItem[];
 }
 
-function getNavGroups(firmSlug: string): NavGroup[] {
+function getNavGroups(firmSlug: string, enabledFeatures: string[] = []): NavGroup[] {
   return [
     {
       label: "Workspace",
       items: [
         {
-          label: "Dashboard",
+          label: "Dashboard", requiredFeature: "DASHBOARD",
           href: `/${firmSlug}/dashboard`,
           icon: <LayoutDashboard size={16} strokeWidth={1.5} />,
         },
         {
-          label: "Projects",
+          label: "Staff", requiredFeature: "STAFF",
+          href: `/${firmSlug}/staff`,
+          icon: <Users2 size={16} strokeWidth={1.5} />,
+          allowedRoles: ["admin", "team_lead"],
+        },
+        {
+          label: "Projects", requiredFeature: "PROJECTS",
           href: `/${firmSlug}/projects`,
           icon: <FolderKanban size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "team_lead", "staff"],
         },
         {
-          label: "Tasks",
+          label: "Tasks", requiredFeature: "TASKS",
           href: `/${firmSlug}/tasks`,
           icon: <CheckSquare size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "team_lead", "staff"],
         },
         {
-          label: "Time",
+          label: "Attendance", requiredFeature: "ATTENDANCE",
+          href: `/${firmSlug}/attendance`,
+          icon: <UserCheck size={16} strokeWidth={1.5} />,
+          allowedRoles: ["admin", "team_lead", "staff", "accounts"],
+        },
+        {
+          label: "Time", requiredFeature: "TIME",
           href: `/${firmSlug}/time`,
           icon: <Clock size={16} strokeWidth={1.5} />,
         },
         {
-          label: "Leave",
+          label: "Leave", requiredFeature: "LEAVE",
           href: `/${firmSlug}/leave`,
           icon: <CalendarOff size={16} strokeWidth={1.5} />,
         },
@@ -81,19 +96,19 @@ function getNavGroups(firmSlug: string): NavGroup[] {
       label: "Project Ops",
       items: [
         {
-          label: "Meetings",
+          label: "Meetings", requiredFeature: "MEETINGS",
           href: `/${firmSlug}/meetings`,
           icon: <Users size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "team_lead"],
         },
         {
-          label: "RFIs",
+          label: "RFIs", requiredFeature: "RFI",
           href: `/${firmSlug}/rfi`,
           icon: <MessageSquare size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "team_lead"],
         },
         {
-          label: "Site Reports",
+          label: "Site Reports", requiredFeature: "SITE_REPORTS",
           href: `/${firmSlug}/site-reports`,
           icon: <FileText size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "team_lead"],
@@ -104,25 +119,25 @@ function getNavGroups(firmSlug: string): NavGroup[] {
       label: "Business",
       items: [
         {
-          label: "CRM",
+          label: "CRM", requiredFeature: "CRM",
           href: `/${firmSlug}/crm`,
           icon: <BarChart2 size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "accounts"],
         },
         {
-          label: "Finance",
+          label: "Finance", requiredFeature: "FINANCE",
           href: `/${firmSlug}/finance`,
           icon: <Receipt size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "accounts"],
         },
         {
-          label: "Change Requests",
+          label: "Change Requests", requiredFeature: "CHANGE_REQUESTS",
           href: `/${firmSlug}/change-requests`,
           icon: <GitPullRequest size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "team_lead", "accounts"],
         },
         {
-          label: "Variation Orders",
+          label: "Variation Orders", requiredFeature: "VARIATION_ORDERS",
           href: `/${firmSlug}/variation-orders`,
           icon: <GitMerge size={16} strokeWidth={1.5} />,
           allowedRoles: ["admin", "team_lead", "accounts"],
@@ -147,33 +162,37 @@ interface SidebarProps {
   firmSlug: string;
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export function Sidebar({ firmSlug, collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ firmSlug, collapsed, onToggle, mobileOpen, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user, firm } = useAuthStore();
-  const navGroups = getNavGroups(firmSlug);
+  const navGroups = getNavGroups(firmSlug, firm?.enabledFeatures || []).map(group => ({
+    ...group,
+    items: group.items.filter(item => !item.requiredFeature || (firm?.enabledFeatures || []).includes(item.requiredFeature))
+  })).filter(group => group.items.length > 0);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside
-      style={{
-        width: collapsed ? 56 : 220,
-        minWidth: collapsed ? 56 : 220,
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-        background: "var(--color-bg-sidebar)",
-        borderRight: "1px solid var(--color-border)",
-        display: "flex",
-        flexDirection: "column",
-        transition: "width var(--duration-base) var(--ease-out), min-width var(--duration-base) var(--ease-out)",
-        overflow: "hidden",
-        flexShrink: 0,
-        zIndex: 20,
-      }}
-    >
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={onCloseMobile}
+        />
+      )}
+      <aside
+        className={`${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:sticky md:top-0 h-screen z-50 flex flex-col shrink-0 bg-sidebar border-r border-border transition-all duration-300 overflow-hidden`}
+        style={{
+          width: collapsed ? 56 : 220,
+          minWidth: collapsed ? 56 : 220,
+        }}
+      >
+  
       {/* Logo row */}
       <div
         style={{
@@ -267,6 +286,7 @@ export function Sidebar({ firmSlug, collapsed, onToggle }: SidebarProps) {
                   <Link
                     key={item.href}
                     href={item.href}
+                      onClick={() => onCloseMobile?.()}
                     title={collapsed ? item.label : undefined}
                     style={{
                       display: "flex",
@@ -418,5 +438,6 @@ export function Sidebar({ firmSlug, collapsed, onToggle }: SidebarProps) {
         )}
       </div>
     </aside>
+    </>
   );
 }

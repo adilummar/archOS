@@ -32,17 +32,16 @@ import type { RFI, Priority } from "@/lib/store/types";
 type TabFilter = "all" | "open" | "responded" | "closed";
 
 const PRIORITY_DOT: Record<Priority, string> = {
-  urgent: "var(--color-destructive)",
+  
   high: "var(--color-accent)",
-  medium: "var(--color-warning)",
+  normal: "var(--color-warning)",
   low: "var(--color-text-muted)",
 };
 
 const PRIORITY_OPTIONS: { value: "all" | Priority; label: string }[] = [
   { value: "all", label: "All Priority" },
-  { value: "urgent", label: "Urgent" },
   { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
+  { value: "normal", label: "Normal" },
   { value: "low", label: "Low" },
 ];
 
@@ -852,9 +851,9 @@ export default function RFIPage() {
                               >
                                 {(
                                   [
-                                    "urgent",
                                     "high",
-                                    "medium",
+                                    "high",
+                                    "normal",
                                     "low",
                                   ] as Priority[]
                                 ).map((p) => (
@@ -1319,3 +1318,8 @@ export default function RFIPage() {
     </>
   );
 }
+
+
+
+
+

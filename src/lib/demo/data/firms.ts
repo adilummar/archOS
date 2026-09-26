@@ -1,6 +1,6 @@
 import type { Firm } from "../../store/types";
 
-export const firm1: Firm = {
+export const firm1: any = {
   id: "firm-cda",
   name: "Coastal Design Associates",
   address: "2nd Floor, Sea Breeze Tower, Kannur Road, Kozhikode, Kerala 673001",
@@ -21,7 +21,7 @@ export const firm1: Firm = {
   createdAt: "2023-04-10",
 };
 
-export const firm2: Firm = {
+export const firm2: any = {
   id: "firm-forma",
   name: "Forma Studio",
   address: "5th Floor, Marine Square, MG Road, Kochi, Kerala 682016",
@@ -41,3 +41,4 @@ export const firm2: Firm = {
   },
   createdAt: "2024-09-01",
 };
+

@@ -1,0 +1,439 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── FIRM ──────────────────────────────────────────────────────────────────
+
+model Firm {
+  id                 String   @id @default(uuid())
+  name               String
+  slug               String   @unique @default("") // URL-safe identifier e.g. "cda"
+  logo               String?
+  address            String
+  phone              String
+  email              String
+  gstin              String?
+  website            String?
+  planType           String   @default("starter") // starter, professional, enterprise
+  priorityPeriodDays Int      @default(7)
+  minimumTaskLeadTimeDays Int @default(3)
+  status             String   @default("ACTIVE") // ACTIVE, SUSPENDED
+  onboardingState    String   @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED
+  enabledFeatures    String[] @default(["DASHBOARD", "PROJECTS", "TASKS", "STAFF", "ATTENDANCE"])
+  createdAt          DateTime @default(now())
+
+  users            User[]
+  projects         Project[]
+  projectTemplates ProjectTemplate[]
+  clients          Client[]
+  activityLogs     ActivityLog[]
+
+}
+
+// ─── USERS (STAFF) ─────────────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(uuid())
+  firmId          String
+  firm            Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  name            String
+  email           String    @unique
+  passwordHash    String?   // bcrypt hash — never plaintext, never exposed to client
+  phone           String?
+  role            String // admin, team_lead, staff, accounts
+  designation     String?
+  avatarInitials  String?
+  avatarColor     String?
+  costRatePerHour Float     @default(0)
+  joinedAt        DateTime  @default(now())
+  status          String    @default("active") // active, discontinued
+  discontinuedAt  DateTime?
+
+  // Relations
+  assignedTasks      Task[]              @relation("TaskAssignee")
+  createdTasks       Task[]              @relation("TaskCreator")
+  projectsAsLead     Project[]           @relation("ProjectTeamLead")
+  timeLogs           TimeLog[]
+  activityLogs       ActivityLog[]
+  projectStaff       ProjectStaff[]
+  attendanceSessions AttendanceSession[] @relation("UserAttendance")
+  reviewCycles       TaskReviewCycle[]
+  assignmentOverridesAuthored TaskAssignmentOverride[] @relation("OverrideAuthor")
+  assignmentOverridesTargeted TaskAssignmentOverride[] @relation("OverrideTarget")
+
+  @@index([firmId])
+}
+
+// ─── CLIENTS ───────────────────────────────────────────────────────────────
+
+model Client {
+  id            String   @id @default(uuid())
+  firmId        String
+  firm          Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  name          String
+  company       String?
+  phone         String?
+  email         String
+  address       String?
+  gstin         String?
+  portalEnabled Boolean  @default(false)
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  projects Project[]
+
+  @@index([firmId])
+}
+
+// ─── PROJECTS ──────────────────────────────────────────────────────────────
+
+model Project {
+  id                    String    @id @default(uuid())
+  firmId                String
+  firm                  Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  clientId              String?
+  client                Client?   @relation(fields: [clientId], references: [id])
+  teamLeadId            String?
+  teamLead              User?     @relation("ProjectTeamLead", fields: [teamLeadId], references: [id])
+  name                  String
+  clientName            String?
+  status                String    @default("active") // active, on_hold, completed, cancelled
+  location              String?
+  startDate             DateTime?
+  expectedEndDate       DateTime?
+  actualEndDate         DateTime?
+  projectValue          Float?
+  feeAgreed             Float?
+  feeStructure          String? // lump_sum, percentage, per_stage
+  description           String?
+  fileRequestWindowDays Int       @default(7)
+  chatEnabled           Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  tasks        Task[]
+  stages       ProjectStage[]
+  timeLogs     TimeLog[]
+  activityLogs ActivityLog[]
+  staffMembers ProjectStaff[]
+
+  templateId String?
+  template   ProjectTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([firmId])
+  @@index([status])
+}
+
+// Many-to-many: Project ↔ Staff
+model ProjectStaff {
+  projectId String
+  userId    String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+}
+
+// ─── PROJECT STAGES ────────────────────────────────────────────────────────
+
+model ProjectStage {
+  id                       String    @id @default(uuid())
+  projectId                String
+  project                  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name                     String
+  order                    Int
+  status                   String    @default("pending") // pending, in_progress, completed, blocked
+  isClientApprovalRequired Boolean   @default(false)
+  clientApprovalStatus     String? // pending, approved, revision_requested
+  clientApprovalNote       String?
+  clientApprovedAt         DateTime?
+  startDate                DateTime?
+  plannedEndDate           DateTime?
+  actualEndDate            DateTime?
+  description              String?
+  isCustom                 Boolean   @default(false)
+  createdAt                DateTime  @default(now())
+
+  tasks Task[]
+
+  @@index([projectId])
+}
+
+// ─── TASKS ─────────────────────────────────────────────────────────────────
+
+model Task {
+  id             String        @id @default(uuid())
+  firmId         String
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stageId        String?
+  stage          ProjectStage? @relation(fields: [stageId], references: [id])
+  assigneeId     String
+  assignee       User          @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  assignerId     String
+  assigner       User          @relation("TaskCreator", fields: [assignerId], references: [id])
+  title          String
+  description    String?
+  status         String        @default("todo") // todo, in_progress, review, approved, done, blocked
+  priority       String        @default("normal") // low, normal, high
+  dueDate        DateTime?
+  startDate      DateTime?
+  completedAt    DateTime?
+  approvalStatus String? // pending, approved, revision_requested, rejected
+  approvalNote   String?
+  approvedById   String?
+  assignmentOverrides TaskAssignmentOverride[]
+  isBlocked      Boolean       @default(false)
+  blockedReason  String?
+  tags           String[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  subtasks     Subtask[]
+  reviewCycles TaskReviewCycle[]
+
+  @@index([firmId])
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
+// ─── SUBTASKS ──────────────────────────────────────────────────────────────
+
+model Subtask {
+  id           String    @id @default(uuid())
+  taskId       String
+  task         Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title        String
+  completed    Boolean   @default(false)
+  createdById  String
+  assignedToId String?
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  @@index([taskId])
+}
+
+// ─── TIME LOGS ─────────────────────────────────────────────────────────────
+
+model TimeLog {
+  id              String    @id @default(uuid())
+  firmId          String
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase           String?
+  startTime       DateTime
+  endTime         DateTime?
+  durationMinutes Int?
+  notes           String?
+  date            DateTime  @default(now())
+  isEdited        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  @@index([firmId])
+  @@index([userId])
+  @@index([projectId])
+}
+
+// ─── ACTIVITY LOGS ─────────────────────────────────────────────────────────
+// Global logs: no projectId filter needed
+// Project logs: filter by projectId
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  firmId      String
+  firm        Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  projectId   String? // null = firm-level global event
+  project     Project? @relation(fields: [projectId], references: [id])
+  entity      String // task, project, user, file, etc.
+  entityId    String
+  action      String // created, updated, deleted, approved, etc.
+  description String
+  createdAt   DateTime @default(now())
+
+  @@index([firmId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── ATTENDANCE ─────────────────────────────────────────────────────────────
+// One session per user per day. Tracks overall presence + current task.
+
+model AttendanceSession {
+  id                String    @id @default(uuid())
+  firmId            String
+  userId            String
+  user              User      @relation("UserAttendance", fields: [userId], references: [id], onDelete: Cascade)
+  date              String // YYYY-MM-DD — one session per user per day
+  checkInTime       DateTime  @default(now())
+  checkOutTime      DateTime?
+  status            String    @default("working") // working | on_break | checked_out
+  currentProjectId  String?
+  currentTaskId     String? // the task currently being worked on
+  totalWorkMinutes  Int       @default(0)
+  totalBreakMinutes Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  taskSegments TaskTimeSegment[]
+  breakRecords BreakRecord[]
+
+  @@unique([userId, date]) // one session per user per day
+  @@index([firmId])
+  @@index([userId])
+  @@index([date])
+}
+
+// One row per task worked on within a session.
+// Each time user switches tasks a new row is created.
+
+model TaskTimeSegment {
+  id                    String            @id @default(uuid())
+  sessionId             String
+  session               AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  projectId             String
+  taskId                String
+  startTime             DateTime          @default(now())
+  endTime               DateTime?
+  durationMinutes       Int? // calculated on endTime
+  taskCompletedOnSwitch Boolean           @default(false) // true if user marked task done when switching
+
+  @@index([sessionId])
+  @@index([taskId])
+}
+
+// One row per break taken within a session.
+
+model BreakRecord {
+  id              String            @id @default(uuid())
+  sessionId       String
+  session         AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  startTime       DateTime          @default(now())
+  endTime         DateTime?
+  durationMinutes Int?
+
+  @@index([sessionId])
+}
+
+// ─── PROJECT TEMPLATES ─────────────────────────────────────────────────────
+
+model ProjectTemplate {
+  id                           String   @id @default(uuid())
+  firmId                       String
+  firm                         Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  name                         String
+  description                  String?
+  feeStructure                 String   @default("per_stage") // lump_sum, percentage, per_stage
+  defaultFileRequestWindowDays Int      @default(7)
+  isDefault                    Boolean  @default(false)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  stages   TemplateStage[]
+  projects Project[]
+
+  @@index([firmId])
+}
+
+model TemplateStage {
+  id                       String          @id @default(uuid())
+  templateId               String
+  template                 ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  name                     String
+  order                    Int
+  defaultDurationDays      Int             @default(7)
+  description              String?
+  isClientApprovalRequired Boolean         @default(false)
+  isPaymentMilestone       Boolean         @default(false)
+  paymentPercentage        Float?
+  drawingTypesExpected     String[]
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+
+  tasks TemplateTask[]
+
+  @@index([templateId])
+}
+
+model TemplateTask {
+  id          String        @id @default(uuid())
+  stageId     String
+  stage       TemplateStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  order       Int
+  priority    String        @default("medium") // low, medium, high, urgent
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([stageId])
+}
+
+// ─── TASK REVISIONS ────────────────────────────────────────────────────────
+
+model TaskReviewCycle {
+  id               String    @id @default(uuid())
+  taskId           String
+  task             Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reviewerId       String
+  reviewer         User      @relation(fields: [reviewerId], references: [id])
+  revisionNumber   Int
+  remark           String
+  statusRequested  String // approved, revision_requested
+  previousDueDate  DateTime?
+  requestedDueDate DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([taskId])
+  @@index([reviewerId])
+}
+
+
+model TaskAssignmentOverride {
+  id                   String   @id @default(uuid())
+  firmId               String
+  taskId               String
+  teamLeadId           String
+  assigneeId           String
+  requestedDueDate     DateTime
+  requiredLeadTimeDays Int
+  actualLeadTimeDays   Int
+  reason               String
+  createdAt            DateTime @default(now())
+
+  task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  teamLead User @relation("OverrideAuthor", fields: [teamLeadId], references: [id])
+  assignee User @relation("OverrideTarget", fields: [assigneeId], references: [id])
+
+  @@index([firmId])
+  @@index([teamLeadId])
+}
+
+
+
+
+
+
+
+// --- PLATFORM ADMIN ----------------------------------------------------------
+
+model PlatformAdmin {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

@@ -7,6 +7,7 @@ import { Avatar } from "../../components/shared/Avatar";
 import { useTaskStore } from "../../lib/store/task.store";
 import { useFirmStore } from "../../lib/store/firm.store";
 import { useAuthStore } from "../../lib/store/auth.store";
+import { useUpdateTask, useDeleteTask, useReviewTask, useOverrideTask, useAddSubtask, useToggleSubtask } from "@/hooks/useTasks";
 import { useProjectStore } from "../../lib/store/project.store";
 import { toast } from "../../lib/store/toast.store";
 import { useActivityStore } from "../../lib/store/activity.store";
@@ -178,14 +179,15 @@ function ReassignControl({
 export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const tasks = useTaskStore((s) => s.tasks);
   const task = tasks.find((t) => t.id === taskId);
-  const updateTask = useTaskStore((s) => s.updateTask);
-  const setTaskStatus = useTaskStore((s) => s.setTaskStatus);
-  const toggleSubtask = useTaskStore((s) => s.toggleSubtask);
-  const addSubtask = useTaskStore((s) => s.addSubtask);
-  const setTaskApproval = useTaskStore((s) => s.setTaskApproval);
-  const reassignTask = useTaskStore((s) => s.reassignTask);
-
+            
   const authUser = useAuthStore((s) => s.user);
+  const firmId = authUser?.firmId || "";
+  const updateTaskMut = useUpdateTask(firmId, authUser?.id || "");
+  const deleteTaskMut = useDeleteTask(firmId, authUser?.id || "");
+  const reviewTaskMut = useReviewTask(firmId, authUser?.id || "");
+  const overrideTaskMut = useOverrideTask(firmId);
+  const addSubtaskMut = useAddSubtask(firmId);
+  const toggleSubtaskMut = useToggleSubtask(firmId);
   const users = useFirmStore((s) => s.users);
   const projects = useProjectStore((s) => s.projects);
   const activities = useActivityStore((s) => s.logs);
@@ -221,7 +223,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
   const handleTitleBlur = () => {
     if (titleEdit.trim() !== "" && titleEdit !== task.title) {
-      updateTask(task.id, { title: titleEdit });
+      updateTaskMut.mutateAsync({ taskId: task.id, data: { title: titleEdit } });
     } else {
       setTitleEdit(task.title);
     }
@@ -229,31 +231,31 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
   const handleDescBlur = () => {
     if (descEdit !== (task.description || "")) {
-      updateTask(task.id, { description: descEdit });
+      updateTaskMut.mutateAsync({ taskId: task.id, data: { description: descEdit } });
     }
   };
 
   const handleStatusChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value as any;
-    setTaskStatus(task.id, val);
+    updateTaskMut.mutateAsync({ taskId: task.id, data: { status: val } });
     toast("Status updated", "success");
   };
 
   const handlePriorityChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    updateTask(task.id, { priority: e.target.value as any });
+    updateTaskMut.mutateAsync({ taskId: task.id, data: { priority: e.target.value as any } });
   };
 
   const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
-    updateTask(task.id, { dueDate: e.target.value });
+    updateTaskMut.mutateAsync({ taskId: task.id, data: { dueDate: e.target.value } });
   };
 
   const handleAddSubtask = () => {
     if (newSubtask.trim()) {
-      addSubtask(task.id, {
+      addSubtaskMut.mutateAsync({ taskId: task.id, data: {
         title: newSubtask,
         createdById: authUser?.id || "",
         assignedToId: authUser?.id || "",
-      });
+      } });
       setNewSubtask("");
       setIsAddingSubtask(false);
     }
@@ -269,11 +271,11 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
   const handleDeleteSubtask = (subtaskId: string) => {
     const newSubtasks = task.subtasks.filter((s) => s.id !== subtaskId);
-    updateTask(task.id, { subtasks: newSubtasks });
+    updateTaskMut.mutateAsync({ taskId: task.id, data: { subtasks: newSubtasks } });
   };
 
   const handleReassign = (assigneeId: string) => {
-    reassignTask(task.id, assigneeId);
+    updateTaskMut.mutateAsync({ taskId: task.id, data: { assigneeId } });
     const name = users.find((u) => u.id === assigneeId)?.name ?? "staff";
     toast(`Task reassigned to ${name}`, "success");
   };
@@ -517,7 +519,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
               <input
                 type="checkbox"
                 checked={st.completed}
-                onChange={() => toggleSubtask(task.id, st.id)}
+                onChange={() => toggleSubtaskMut.mutateAsync({ subtaskId: st.id, data: {} })}
                 disabled={readonly}
                 style={{ accentColor: "var(--color-accent)" }}
               />
@@ -606,13 +608,13 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
               </span>
               <div style={{ display: "flex", gap: "12px" }}>
                 <button
-                  onClick={() => { setTaskApproval(task.id, "approved", { approvedById: authUser?.id }); toast("Task approved", "success"); }}
+                  onClick={() => { reviewTaskMut.mutateAsync({ taskId: task.id, data: { status: "approved", ...{ approvedById: authUser?.id } } }); toast("Task approved", "success"); }}
                   style={{ flex: 1, background: "var(--color-success)", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "8px 16px", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
                 >
                   Approve
                 </button>
                 <button
-                  onClick={() => setTaskApproval(task.id, "revision_requested", { note: "Revision required" })}
+                  onClick={() => reviewTaskMut.mutateAsync({ taskId: task.id, data: { status: "revision_requested", ...{ note: "Revision required" } } })}
                   style={{ flex: 1, background: "var(--color-warning)", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "8px 16px", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
                 >
                   Request Revision

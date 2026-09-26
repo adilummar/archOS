@@ -24,6 +24,10 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Avatar, AvatarGroup } from "@/components/shared/Avatar";
 import { OverviewTab } from "@/components/project/OverviewTab";
 import { TasksTab } from "@/components/project/TasksTab";
+import { NewTaskDrawer } from "@/components/drawers/NewTaskDrawer";
+import { NewStageDrawer } from "@/components/drawers/NewStageDrawer";
+import { Target } from "lucide-react";
+import { Plus } from "lucide-react";
 import { FilesTab } from "@/components/project/FilesTab";
 import { RfiTab } from "@/components/project/RfiTab";
 import { MeetingsTab } from "@/components/project/MeetingsTab";
@@ -253,6 +257,8 @@ export default function ProjectDetailPage() {
   const { users } = useFirmStore();
   const { tasks } = useTaskStore();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+  const [isNewMilestoneOpen, setIsNewMilestoneOpen] = useState(false);
 
   const project = projects.find((p) => p.id === params.projectId);
 
@@ -531,17 +537,28 @@ export default function ProjectDetailPage() {
         {/* Stage timeline */}
         <StageTimeline project={project} />
 
-        {/* Tab bar */}
+        {/* Tab bar wrapper */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            padding: "0 28px",
-            gap: 0,
-            overflowX: "auto",
+            justifyContent: "space-between",
+            borderBottom: "1px solid var(--color-border)",
+            paddingRight: 28,
           }}
         >
-          {visibleTabs.map((tab) => {
+          {/* Tab bar */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "0 28px",
+              gap: 0,
+              overflowX: "auto",
+              flex: 1,
+            }}
+          >
+            {visibleTabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -573,14 +590,79 @@ export default function ProjectDetailPage() {
               >
                 {tab.icon}
                 {tab.label}
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right actions */}
+          {activeTab === "tasks" && (
+            <button
+              onClick={() => setIsNewTaskOpen(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--color-accent)",
+                color: "white",
+                border: "none",
+                borderRadius: "var(--radius-sm)",
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 500,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                marginLeft: 16,
+              }}
+            >
+              <Plus size={14} strokeWidth={2} /> New Task
+            </button>
+          )}
+          
+          {/* Milestone button */}
+          {(activeTab === "overview" || activeTab === "tasks") && (
+            <button
+              onClick={() => setIsNewMilestoneOpen(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--color-bg-input)",
+                color: "var(--color-text-primary)",
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-sm)",
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 500,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                marginLeft: 16,
+              }}
+            >
+              <Target size={14} strokeWidth={2} /> New Milestone
+            </button>
+          )}
         </div>
       </div>
 
       {/* Tab content */}
       <div style={{ padding: "24px 28px", minHeight: 400 }}>{renderTab()}</div>
+
+      {isNewTaskOpen && (
+        <NewTaskDrawer
+          open={isNewTaskOpen}
+          onClose={() => setIsNewTaskOpen(false)}
+          projectId={project.id}
+        />
+      )}
+
+      {isNewMilestoneOpen && (
+        <NewStageDrawer
+          open={isNewMilestoneOpen}
+          onClose={() => setIsNewMilestoneOpen(false)}
+          projectId={project.id}
+        />
+      )}
     </>
   );
 }

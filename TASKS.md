@@ -108,14 +108,12 @@ A task is NOT done until:
 
 ## CURRENT STATUS
 
-Last updated: 2026-08-06 (Session 6)
-Current phase: 9 / 12
-Current task: 9.6 Client portal — Invoices tab
-Last completed: 9.5 Client portal — Chat tab
+Last updated: 2026-09-19 (Session 7)
+Current phase: 10 / 12
+Current task: 10.1 Contractor portal auth
+Last completed: 9.7 Client portal — Requests tab
 Blockers: —
-Notes: Built Chat tab with real-time project messaging.
-       Remaining: Phase 9 client portal, Phase 10 contractor portal,
-       11.3 ConfirmDialog, 11.4 super admin, Phase 12 polish.
+Notes: Phase 9 client portal complete. Moving to contractor portal.
 
 ---
 
@@ -136,6 +134,7 @@ Notes: Built Chat tab with real-time project messaging.
 2026-08-06 Session 6 | 9.3 | Built Client Portal Overview tab with stage gate approval logic | Next: 9.4 Client portal — Files tab
 2026-08-06 Session 6 | 9.4 | Built Client Portal Files tab with file requests form and file viewer list | Next: 9.5 Client portal — Chat tab
 2026-08-06 Session 6 | 9.5 | Built Client Portal Chat tab bridging client and firm | Next: 9.6 Client portal — Invoices tab
+2026-09-19 Session 7 | 9.6, 9.7 | Finished Client Portal (Invoices & Requests tabs) with skeleton loaders | Next: 10.1 Contractor portal auth
 
 ---
 
@@ -310,10 +309,10 @@ Notes: Built Chat tab with real-time project messaging.
            Same messages as project chat (firm portal), filtered by project
            Client messages right-aligned, firm messages left-aligned
 
-- [ ] 9.6  Client portal — Invoices tab
+- [x] 9.6  Client portal — Invoices tab
            Invoice list, line items with GST breakdown, payment status
 
-- [ ] 9.7  Client portal — Requests tab
+- [x] 9.7  Client portal — Requests tab
            File request history, RFI history, status badges
 
 ---

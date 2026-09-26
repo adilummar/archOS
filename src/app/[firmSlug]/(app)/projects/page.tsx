@@ -10,14 +10,20 @@ import {
   Plus,
   ArrowUpDown,
   FolderOpen,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useProjectStore } from "@/lib/store/project.store";
+import { useProjects, useDeleteProject } from "@/hooks/useProjects";
 import { useTaskStore, projectCompletion } from "@/lib/store/task.store";
 import { useFirmStore } from "@/lib/store/firm.store";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { AvatarGroup } from "@/components/shared/Avatar";
 import { NewProjectDrawer } from "@/components/project/NewProjectDrawer";
+import { EditProjectDrawer } from "@/components/project/EditProjectDrawer";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import type { Project } from "@/lib/store/types";
 
 type SortOption = "name" | "deadline_asc" | "deadline_desc" | "value_asc" | "value_desc" | "progress";
 
@@ -40,10 +46,15 @@ export default function ProjectsPage() {
   const params = useParams<{ firmSlug: string }>();
   const firmSlug = params?.firmSlug ?? "demo";
 
-  const { projects } = useProjectStore();
+  const { user, firm } = useAuthStore();
+  const { projects: uiProjects } = useProjectStore();
+  const { data: projects = [] } = useProjects(firm?.id || "");
+  const deleteProjectMut = useDeleteProject(firm?.id || "");
+  const deleteProject = (id: string) => deleteProjectMut.mutateAsync(id);
   const { tasks } = useTaskStore();
   const { users } = useFirmStore();
-  const { firm, user } = useAuthStore();
+  
+  const isAdmin = user?.role === "admin" || user?.role === "team_lead";
 
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -52,6 +63,10 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "on_hold" | "completed">("all");
   const [sortOption, setSortOption] = useState<SortOption>("name");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+
+  // Edit & delete state
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 1000);
@@ -344,7 +359,65 @@ export default function ProjectsPage() {
                       {p.clientName}
                     </p>
                   </div>
-                  <StatusBadge status={p.status} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    <StatusBadge status={p.status} />
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditProject(p); }}
+                          title="Edit project"
+                          style={{
+                            background: "transparent",
+                            border: "1px solid var(--color-border)",
+                            borderRadius: "var(--radius-sm)",
+                            padding: "4px 6px",
+                            cursor: "pointer",
+                            color: "var(--color-text-muted)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all var(--duration-fast)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "var(--color-accent)";
+                            e.currentTarget.style.color = "var(--color-accent)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "var(--color-border)";
+                            e.currentTarget.style.color = "var(--color-text-muted)";
+                          }}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
+                          title="Delete project"
+                          style={{
+                            background: "transparent",
+                            border: "1px solid var(--color-border)",
+                            borderRadius: "var(--radius-sm)",
+                            padding: "4px 6px",
+                            cursor: "pointer",
+                            color: "var(--color-text-muted)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all var(--duration-fast)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "var(--color-destructive)";
+                            e.currentTarget.style.color = "var(--color-destructive)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "var(--color-border)";
+                            e.currentTarget.style.color = "var(--color-text-muted)";
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -392,6 +465,9 @@ export default function ProjectsPage() {
                 <th style={{ padding: "12px 16px", fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--color-text-muted)" }}>Team</th>
                 <th style={{ padding: "12px 16px", fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--color-text-muted)" }}>Deadline</th>
                 <th style={{ padding: "12px 16px", fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--color-text-muted)", textAlign: "right" }}>Value</th>
+                {isAdmin && (
+                  <th style={{ padding: "12px 16px", fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--color-text-muted)", textAlign: "center" }}>Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -433,6 +509,62 @@ export default function ProjectsPage() {
                     <td style={{ padding: "16px", fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--color-text-primary)", textAlign: "right" }}>
                       {formatLakhs(p.feeAgreed)}
                     </td>
+                    {isAdmin && (
+                      <td style={{ padding: "16px", textAlign: "center" }}>
+                        <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditProject(p); }}
+                            title="Edit project"
+                            style={{
+                              background: "transparent",
+                              border: "1px solid var(--color-border)",
+                              borderRadius: "var(--radius-sm)",
+                              padding: "5px 8px",
+                              cursor: "pointer",
+                              color: "var(--color-text-muted)",
+                              display: "flex",
+                              alignItems: "center",
+                              transition: "all var(--duration-fast)",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = "var(--color-accent)";
+                              e.currentTarget.style.color = "var(--color-accent)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = "var(--color-border)";
+                              e.currentTarget.style.color = "var(--color-text-muted)";
+                            }}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
+                            title="Delete project"
+                            style={{
+                              background: "transparent",
+                              border: "1px solid var(--color-border)",
+                              borderRadius: "var(--radius-sm)",
+                              padding: "5px 8px",
+                              cursor: "pointer",
+                              color: "var(--color-text-muted)",
+                              display: "flex",
+                              alignItems: "center",
+                              transition: "all var(--duration-fast)",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = "var(--color-destructive)";
+                              e.currentTarget.style.color = "var(--color-destructive)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = "var(--color-border)";
+                              e.currentTarget.style.color = "var(--color-text-muted)";
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -441,7 +573,28 @@ export default function ProjectsPage() {
         </div>
       )}
       </div>
+
+      {/* Drawers & dialogs */}
       <NewProjectDrawer open={newProjectOpen} onClose={() => setNewProjectOpen(false)} />
+      <EditProjectDrawer
+        open={editProject !== null}
+        project={editProject}
+        onClose={() => setEditProject(null)}
+      />
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        title="Delete Project"
+        description={`Are you sure you want to permanently delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        isDestructive
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteProject(deleteTarget.id);
+          }
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </>
   );
 }

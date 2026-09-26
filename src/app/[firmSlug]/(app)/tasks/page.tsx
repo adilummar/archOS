@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   List,
   GripVertical,
+  Plus,
 } from "lucide-react";
 import {
   DndContext,
@@ -35,20 +36,21 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTaskStore, projectCompletion } from "@/lib/store/task.store";
+import { useTasks, useUpdateTask } from "@/hooks/useTasks";
 import { useProjectStore } from "@/lib/store/project.store";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useFirmStore } from "@/lib/store/firm.store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Avatar } from "@/components/shared/Avatar";
 import { TaskDrawer } from "@/components/drawers/TaskDrawer";
+import { NewTaskDrawer } from "@/components/drawers/NewTaskDrawer";
 import { toast } from "@/lib/store/toast.store";
 import type { Task, TaskStatus, Priority } from "@/lib/store/types";
 
 const PRIORITY_DOT: Record<Priority, string> = {
   low: "var(--color-text-muted)",
-  medium: "var(--color-warning)",
+  normal: "var(--color-warning)",
   high: "var(--color-accent)",
-  urgent: "var(--color-destructive)",
 };
 
 const STATUS_OPTIONS: { value: "all" | TaskStatus; label: string }[] = [
@@ -251,6 +253,7 @@ export default function TasksPage() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
 
   // DnD sensors for kanban
   const sensors = useSensors(
@@ -272,13 +275,18 @@ export default function TasksPage() {
     if (!firm || !user) return [];
     let result = tasks.filter((t) => t.firmId === firm.id);
 
-    if (user.role === "staff") {
-      result = result.filter((t) => t.assigneeId === user.id);
-    }
+    
 
-    if (showMyTasksOnly) {
-      result = result.filter((t) => t.assigneeId === user.id);
-    }
+    const checkImplicit = (t: Task) => {
+      if (t.assigneeId === user.id) return true;
+      if (!t.assigneeId) {
+        const p = projects.find(proj => proj.id === t.projectId);
+        if (p && p.staffIds.length === 1 && p.staffIds[0] === user.id && t.stageId === p.currentStageId) return true;
+      }
+      return false;
+    };
+    if (user.role === "staff") result = result.filter(checkImplicit);
+    else if (showMyTasksOnly) result = result.filter(checkImplicit);
 
     if (statusFilter !== "all") {
       result = result.filter((t) => t.status === statusFilter);
@@ -412,6 +420,29 @@ export default function TasksPage() {
                 </button>
               ))}
             </div>
+            
+            <button
+              onClick={() => setIsNewTaskOpen(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--color-accent)",
+                color: "white",
+                border: "none",
+                borderRadius: "var(--radius-sm)",
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 500,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "background var(--duration-fast)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "var(--color-accent)"; }}
+            >
+              <Plus size={14} strokeWidth={2} /> New Task
+            </button>
           </div>
         </div>
 
@@ -451,7 +482,7 @@ export default function TasksPage() {
             style={selectStyle}
           >
             <option value="all">All Priority</option>
-            {(["urgent", "high", "medium", "low"] as Priority[]).map((p) => (
+            {(["high", "normal", "low"] as Priority[]).map((p) => (
               <option key={p} value={p}>
                 {p.charAt(0).toUpperCase() + p.slice(1)}
               </option>
@@ -667,6 +698,14 @@ export default function TasksPage() {
         )}
       </div>
 
+      {/* NewTaskDrawer */}
+      {isNewTaskOpen && (
+        <NewTaskDrawer
+          open={isNewTaskOpen}
+          onClose={() => setIsNewTaskOpen(false)}
+        />
+      )}
+
       {/* TaskDrawer */}
       {selectedTaskId && (
         <TaskDrawer
@@ -677,3 +716,12 @@ export default function TasksPage() {
     </>
   );
 }
+
+
+
+
+
+
+
+
+

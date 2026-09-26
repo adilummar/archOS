@@ -17,6 +17,7 @@ import { useProjectStore } from "../../lib/store/project.store";
 import { Avatar } from "../shared/Avatar";
 import { Plus, X } from "lucide-react";
 import type { Project, ProjectStage, TemplateStage } from "../../lib/store/types";
+import { instantiateProjectFromTemplate, createClient } from "@/app/actions/project.actions";
 
 interface Props {
   open: boolean;
@@ -70,6 +71,10 @@ export function NewProjectDrawer({ open, onClose }: Props) {
 
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
+  const [isNewClient, setIsNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  
   const [templateId, setTemplateId] = useState("");
   const [feeStructure, setFeeStructure] = useState<Project["feeStructure"]>("per_stage");
   const [location, setLocation] = useState("");
@@ -100,6 +105,9 @@ export function NewProjectDrawer({ open, onClose }: Props) {
   const reset = () => {
     setName("");
     setClientId("");
+    setIsNewClient(false);
+    setNewClientName("");
+    setNewClientEmail("");
     setTemplateId("");
     setFeeStructure("per_stage");
     setLocation("");
@@ -113,60 +121,65 @@ export function NewProjectDrawer({ open, onClose }: Props) {
     setError("");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!firm || !user) return;
     if (!name.trim()) return setError("Project name is required.");
-    if (!clientId) return setError("Select a client.");
+    if (!isNewClient && !clientId) return setError("Select a client.");
+    if (isNewClient && !newClientName.trim()) return setError("Client name is required.");
     if (!templateId || !selectedTemplate) return setError("Select a project template.");
     if (!teamLeadId) return setError("Assign a team lead.");
 
-    const stages: ProjectStage[] = selectedTemplate.stages.map((ts, i) =>
-      stageFromTemplate(ts, i)
-    );
+    try {
+      let finalClientId = clientId;
+      let finalClientName = selectedClient?.name ?? "Client";
 
-    // Distribute milestone amounts proportional to agreed fee
-    const firstMilestone = stages.find((s) => s.paymentMilestone);
-    if (firstMilestone && feeAgreed) {
-      stages.forEach((s) => {
-        if (s.paymentMilestone && s.paymentMilestone.percentage) {
-          s.paymentMilestone.amount = Math.round(
-            (Number(feeAgreed) * s.paymentMilestone.percentage) / 100
-          );
-        }
+      if (isNewClient) {
+        // Create client in DB first
+        const newClientRecord = await createClient({
+          firmId: firm.id,
+          name: newClientName.trim(),
+          email: newClientEmail.trim() || "no-email@example.com",
+        });
+
+        // Add to frontend store
+        useFirmStore.getState().addClient({
+          id: newClientRecord.id,
+          firmId: newClientRecord.firmId,
+          name: newClientRecord.name,
+          email: newClientRecord.email,
+          phone: newClientRecord.phone || "",
+          portalEnabled: newClientRecord.portalEnabled,
+          createdAt: new Date(newClientRecord.createdAt).toISOString(),
+        });
+
+        finalClientId = newClientRecord.id;
+        finalClientName = newClientRecord.name;
+      }
+      const project = await instantiateProjectFromTemplate({
+        firmId: firm.id,
+        templateId,
+        name: name.trim(),
+        clientId: finalClientId,
+        clientName: finalClientName,
+        teamLeadId,
+        staffIds,
+        location: location.trim(),
+        description: "",
+        startDate: startDate ? new Date(startDate) : undefined,
+        expectedEndDate: expectedEndDate ? new Date(expectedEndDate) : undefined,
+        feeAgreed: feeAgreed ? Number(feeAgreed) : undefined,
       });
+
+      // Update Zustand store locally to avoid hard reload
+      
+
+      toast(`Project "${name}" created from Template!`, "success");
+      reset();
+      onClose();
+      router.push(`/${firmSlug}/projects/${project.id}`);
+    } catch (err: any) {
+      setError(err.message || "Failed to create project");
     }
-
-    const project: Project = {
-      id: uid(),
-      firmId: firm.id,
-      name: name.trim(),
-      clientId,
-      clientName: selectedClient?.name ?? "Client",
-      contractorIds,
-      templateId,
-      status: "active",
-      stages,
-      currentStageId: stages[0].id,
-      staffIds,
-      teamLeadId,
-      location,
-      startDate: startDate || nowIso().slice(0, 10),
-      expectedEndDate: expectedEndDate || "",
-      projectValue: projectValue ? Number(projectValue) : undefined,
-      feeAgreed: feeAgreed ? Number(feeAgreed) : 0,
-      feeStructure,
-      description: undefined,
-      fileRequestWindowDays: selectedTemplate.defaultFileRequestWindowDays,
-      chatEnabled: true,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    };
-
-    addProject(project);
-    toast(`Project "${project.name}" created`, "success");
-    reset();
-    onClose();
-    router.push(`/${firmSlug}/projects/${project.id}`);
   };
 
   return (
@@ -199,20 +212,49 @@ export function NewProjectDrawer({ open, onClose }: Props) {
         </Field>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Field label="Client" required>
-            <select
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="">Select client…</option>
-              {firmClients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-primary)" }}>Client <span style={{ color: "var(--color-destructive)" }}>*</span></label>
+              <button
+                type="button"
+                onClick={() => setIsNewClient(!isNewClient)}
+                style={{ background: "none", border: "none", color: "var(--color-accent)", fontSize: "var(--text-xs)", cursor: "pointer", padding: 0 }}
+              >
+                {isNewClient ? "Select existing" : "+ Add new client"}
+              </button>
+            </div>
+            {isNewClient ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <input
+                  type="text"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  placeholder="Client Name *"
+                  style={inputStyle}
+                />
+                <input
+                  type="email"
+                  value={newClientEmail}
+                  onChange={(e) => setNewClientEmail(e.target.value)}
+                  placeholder="Email (optional)"
+                  style={inputStyle}
+                />
+              </div>
+            ) : (
+              <select
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="">Select client…</option>
+                {firmClients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
 
           <Field label="Template" required>
             <select

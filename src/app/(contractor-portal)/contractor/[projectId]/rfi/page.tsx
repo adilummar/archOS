@@ -43,7 +43,7 @@ export default function ContractorRFIsPage() {
       raisedById: portalSession.entityId,
       raiserType: "contractor",
       raiserName: portalSession.entityName,
-      priority: "medium", // Default priority for contractor-raised
+      priority: "normal", // Default priority for contractor-raised
     });
 
     toast("RFI submitted successfully.", "success");
@@ -207,7 +207,7 @@ export default function ContractorRFIsPage() {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    {rfi.priority !== 'medium' && (
+                    {rfi.priority !== 'normal' && (
                       <StatusBadge status={rfi.priority} />
                     )}
                     <StatusBadge status={rfi.status} />
@@ -242,3 +242,5 @@ export default function ContractorRFIsPage() {
     </div>
   );
 }
+
+

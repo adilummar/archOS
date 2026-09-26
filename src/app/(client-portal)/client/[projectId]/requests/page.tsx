@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { SkeletonCard } from "@/components/shared/Skeleton";
 import { useRequestStore } from "@/lib/store/request.store";
 import { useRfiStore } from "@/lib/store/rfi.store";
 import { useAuthStore } from "@/lib/store/auth.store";
@@ -18,6 +19,12 @@ export default function ClientRequestsPage() {
   const { portalSession } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<"files" | "rfis">("files");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!portalSession) return null;
 
@@ -73,7 +80,9 @@ export default function ClientRequestsPage() {
       {/* Content */}
       {activeTab === "files" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {clientFileRequests.length === 0 ? (
+          {isLoading ? (
+            <SkeletonCard count={3} height={140} />
+          ) : clientFileRequests.length === 0 ? (
             <div style={{ textAlign: "center", padding: 48, color: "var(--color-text-muted)" }}>
               <p style={{ fontSize: "var(--text-base)" }}>You haven't made any file requests yet.</p>
             </div>
@@ -113,7 +122,9 @@ export default function ClientRequestsPage() {
 
       {activeTab === "rfis" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {clientRfis.length === 0 ? (
+          {isLoading ? (
+            <SkeletonCard count={3} height={140} />
+          ) : clientRfis.length === 0 ? (
             <div style={{ textAlign: "center", padding: 48, color: "var(--color-text-muted)" }}>
               <p style={{ fontSize: "var(--text-base)" }}>You haven't submitted any RFIs.</p>
             </div>

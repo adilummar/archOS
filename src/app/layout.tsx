@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 };
 
 import { SyncTabs } from "@/components/shared/SyncTabs";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 export default function RootLayout({
   children,
@@ -38,9 +39,12 @@ export default function RootLayout({
       className={`${archivo.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <QueryProvider>
         {children}
         <SyncTabs />
+      </QueryProvider>
       </body>
     </html>
   );
 }
+

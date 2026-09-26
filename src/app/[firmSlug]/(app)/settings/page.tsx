@@ -46,7 +46,7 @@ import { useFirmStore } from "@/lib/store/firm.store";
 import { toast } from "@/lib/store/toast.store";
 import { Avatar } from "@/components/shared/Avatar";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import type { User, Role, ProjectTemplate, TemplateStage, FileCategory } from "@/lib/store/types";
+import type { User, Role, ProjectTemplate, TemplateStage, FileCategory, TemplateTask } from "@/lib/store/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -930,7 +930,7 @@ function StaffRolesSection() {
 
 function PortalSettingsSection() {
   const { firm: authFirm } = useAuthStore();
-  const { firms, updateFirmSettings } = useFirmStore();
+  const { firms, updateFirmSettings, updateFirm } = useFirmStore();
   const liveFirm = firms.find((f) => f.id === authFirm?.id) ?? authFirm;
   const s = liveFirm?.settings;
 
@@ -940,11 +940,19 @@ function PortalSettingsSection() {
     clientApprovalEscalateDays: String(s?.clientApprovalEscalateDays ?? 7),
     maxClientSessions: String(s?.maxClientSessions ?? 3),
     drawingNumberingEnabled: s?.drawingNumberingEnabled ?? true,
-  });
+      minimumTaskLeadTimeDays: String(liveFirm?.minimumTaskLeadTimeDays ?? 3),
+    });
 
   const handleSave = () => {
     if (!liveFirm) return;
-    updateFirmSettings(liveFirm.id, {
+    updateFirm(liveFirm.id, {
+        minimumTaskLeadTimeDays: parseInt(form.minimumTaskLeadTimeDays) || 3,
+      });
+      const authStore = useAuthStore.getState();
+      if (authStore.firm && authStore.firm.id === liveFirm.id) {
+        useAuthStore.setState({ firm: { ...authStore.firm, minimumTaskLeadTimeDays: parseInt(form.minimumTaskLeadTimeDays) || 3 } });
+      }
+      updateFirmSettings(liveFirm.id, {
       defaultFileRequestWindowDays: parseInt(form.defaultFileRequestWindowDays) || 7,
       clientApprovalReminderDays: parseInt(form.clientApprovalReminderDays) || 3,
       clientApprovalEscalateDays: parseInt(form.clientApprovalEscalateDays) || 7,
@@ -976,7 +984,7 @@ function PortalSettingsSection() {
       <Card>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* Row 1 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <FieldLabel>File Request Window (days)</FieldLabel>
               <input
@@ -1014,8 +1022,40 @@ function PortalSettingsSection() {
             </div>
           </div>
 
+          
+          {/* Row 1.5 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+            <div>
+              <label style={{ fontSize: "10px", color: "var(--color-text-muted)", display: "block", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Minimum Task Lead Time (days)</label>
+              <input
+                type="number"
+                min={0}
+                value={form.minimumTaskLeadTimeDays}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, minimumTaskLeadTimeDays: e.target.value }))
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-bg-input)",
+                  color: "var(--color-text-primary)",
+                  fontSize: "var(--text-sm)",
+                  outline: "none",
+                  boxSizing: "border-box"
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+                onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")}
+              />
+              <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)", margin: "4px 0 0" }}>
+                Minimum days in advance a task must be assigned. Requires override otherwise.
+              </p>
+            </div>
+            <div></div>
+          </div>
           {/* Row 2 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <FieldLabel>Client Approval Reminder (days)</FieldLabel>
               <input
@@ -1554,29 +1594,9 @@ export default function SettingsPage() {
         }
       `}</style>
 
-      <div
-        style={{
-          display: "flex",
-          minHeight: "calc(100vh - 60px)",
-          background: "var(--color-bg-canvas)",
-        }}
-      >
+      <div className="flex flex-col md:flex-row min-h-[calc(100vh-60px)] bg-canvas">
         {/* ── Left sidebar nav ── */}
-        <aside
-          style={{
-            width: 228,
-            flexShrink: 0,
-            borderRight: "1px solid var(--color-border)",
-            padding: "28px 12px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            position: "sticky",
-            top: 60,
-            height: "calc(100vh - 60px)",
-            overflowY: "auto",
-          }}
-        >
+        <aside className="w-full md:w-[228px] shrink-0 border-b md:border-b-0 md:border-r border-border p-4 md:py-7 md:px-3 flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-y-auto whitespace-nowrap sticky top-[60px] md:h-[calc(100vh-60px)] z-10 bg-canvas">
           <p
             style={{
               fontSize: "var(--text-xs)",
@@ -1648,14 +1668,7 @@ export default function SettingsPage() {
         </aside>
 
         {/* ── Main content ── */}
-        <main
-          style={{
-            flex: 1,
-            padding: "28px 36px",
-            minWidth: 0,
-            maxWidth: 900,
-          }}
-        >
+        <main className="flex-1 p-4 md:py-7 md:px-9 min-w-0 max-w-[900px]">
           {/* Page heading */}
           <div style={{ marginBottom: 32 }}>
             <h1
@@ -1738,44 +1751,128 @@ function SortableStageItem({
         <GripVertical size={16} />
       </div>
 
-      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 16, alignItems: "center" }}>
-        <div>
-          <label style={{ fontSize: 10, color: "var(--color-text-muted)", display: "block", marginBottom: 4 }}>
-            STAGE NAME
-          </label>
-          <input
-            type="text"
-            value={stage.name}
-            onChange={(e) => onUpdate({ name: e.target.value })}
-            style={{ width: "100%", padding: "6px 10px", fontSize: "var(--text-sm)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)" }}
-          />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+          <div>
+            <label style={{ fontSize: 10, color: "var(--color-text-muted)", display: "block", marginBottom: 4 }}>
+              STAGE NAME
+            </label>
+            <input
+              type="text"
+              value={stage.name}
+              onChange={(e) => onUpdate({ name: e.target.value })}
+              style={{ width: "100%", padding: "6px 10px", fontSize: "var(--text-sm)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)" }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 10, color: "var(--color-text-muted)", display: "block", marginBottom: 4 }}>
+              DURATION (DAYS)
+            </label>
+            <input
+              type="number"
+              value={stage.defaultDurationDays}
+              onChange={(e) => onUpdate({ defaultDurationDays: parseInt(e.target.value) || 0 })}
+              style={{ width: "100%", padding: "6px 10px", fontSize: "var(--text-sm)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)" }}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 16 }}>
+            <input
+              type="checkbox"
+              checked={stage.isClientApprovalRequired}
+              onChange={(e) => onUpdate({ isClientApprovalRequired: e.target.checked })}
+            />
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>Client Approval</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 16 }}>
+            <input
+              type="checkbox"
+              checked={stage.isPaymentMilestone}
+              onChange={(e) => onUpdate({ isPaymentMilestone: e.target.checked })}
+            />
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>Payment Milestone</span>
+          </div>
         </div>
-        <div>
-          <label style={{ fontSize: 10, color: "var(--color-text-muted)", display: "block", marginBottom: 4 }}>
-            DURATION (DAYS)
-          </label>
-          <input
-            type="number"
-            value={stage.defaultDurationDays}
-            onChange={(e) => onUpdate({ defaultDurationDays: parseInt(e.target.value) || 0 })}
-            style={{ width: "100%", padding: "6px 10px", fontSize: "var(--text-sm)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)" }}
-          />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 16 }}>
-          <input
-            type="checkbox"
-            checked={stage.isClientApprovalRequired}
-            onChange={(e) => onUpdate({ isClientApprovalRequired: e.target.checked })}
-          />
-          <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>Client Approval</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 16 }}>
-          <input
-            type="checkbox"
-            checked={stage.isPaymentMilestone}
-            onChange={(e) => onUpdate({ isPaymentMilestone: e.target.checked })}
-          />
-          <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>Payment Milestone</span>
+
+        {/* Tasks List */}
+        <div style={{ paddingLeft: 12, borderLeft: "2px solid var(--color-border)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 600, letterSpacing: 0.5 }}>PRE-DEFINED TASKS</span>
+            <button
+              onClick={() => {
+                const newTask: TemplateTask = {
+                  id: `task-${Date.now()}`,
+                  stageId: stage.id,
+                  title: "New Task",
+                  description: "",
+                  order: (stage.tasks || []).length,
+                  priority: "normal",
+                };
+                onUpdate({ tasks: [...(stage.tasks || []), newTask] });
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, fontSize: "var(--text-xs)", color: "var(--color-accent)",
+                background: "transparent", border: "none", cursor: "pointer", fontWeight: 500
+              }}
+            >
+              <Plus size={12} /> Add Task
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {(stage.tasks || []).length === 0 ? (
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>No tasks defined.</span>
+            ) : null}
+            {(stage.tasks || []).map((task, tIndex) => (
+              <div key={task.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 4, height: 4, borderRadius: 2, background: "var(--color-text-muted)", flexShrink: 0 }} />
+                <input
+                  type="text"
+                  value={task.title}
+                  placeholder="Task title"
+                  onChange={(e) => {
+                    const newTasks = [...(stage.tasks || [])];
+                    newTasks[tIndex] = { ...task, title: e.target.value };
+                    onUpdate({ tasks: newTasks });
+                  }}
+                  style={{
+                    flex: 1, padding: "4px 8px", fontSize: "var(--text-xs)", borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)", outline: "none"
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "var(--color-accent)"}
+                  onBlur={(e) => e.target.style.borderColor = "var(--color-border)"}
+                />
+                <select
+                  value={task.priority}
+                  onChange={(e) => {
+                    const newTasks = [...(stage.tasks || [])];
+                    newTasks[tIndex] = { ...task, priority: e.target.value as any };
+                    onUpdate({ tasks: newTasks });
+                  }}
+                  style={{
+                    width: 90, padding: "4px", fontSize: "var(--text-xs)", borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)", outline: "none"
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "var(--color-accent)"}
+                  onBlur={(e) => e.target.style.borderColor = "var(--color-border)"}
+                >
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  
+                </select>
+                <button
+                  onClick={() => {
+                    const newTasks = (stage.tasks || []).filter((t) => t.id !== task.id);
+                    onUpdate({ tasks: newTasks });
+                  }}
+                  style={{
+                    background: "transparent", border: "none", color: "var(--color-text-muted)", cursor: "pointer", padding: 4, flexShrink: 0
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1787,6 +1884,8 @@ function SortableStageItem({
           color: "var(--color-text-muted)",
           cursor: "pointer",
           padding: 4,
+          alignSelf: "flex-start",
+          marginTop: 12
         }}
       >
         <Trash2 size={16} />
@@ -1907,7 +2006,7 @@ function ProjectTemplatesSection() {
 
         {activeTemplate && (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--color-text-primary)", display: "block", marginBottom: 6 }}>
                   Template Name
@@ -1981,3 +2080,6 @@ function ProjectTemplatesSection() {
     </div>
   );
 }
+
+
+

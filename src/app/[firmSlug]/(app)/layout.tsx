@@ -12,15 +12,17 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { ToastProvider } from "@/components/shared/Toast";
 import { useAuthStore } from "@/lib/store/auth.store";
-import { seedAllStores } from "@/lib/demo/seed";
+import { DBProvider } from "@/components/providers/DBProvider";
 
 /** Map pathname segment → human readable page title */
 function getPageTitle(pathname: string): string {
   const segment = pathname.split("/").pop() ?? "";
   const map: Record<string, string> = {
     dashboard: "Dashboard",
+    staff: "Staff",
     projects: "Projects",
     tasks: "Tasks",
+    attendance: "Attendance",
     time: "Time Tracker",
     leave: "Leave",
     meetings: "Meetings",
@@ -41,13 +43,45 @@ export default function FirmAppLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const { user, firm } = useAuthStore();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Intercept uncompleted onboarding and unauthorized feature access
   useEffect(() => {
-    // Always ensure demo data seeded
-    seedAllStores();
-  }, []);
+    if (!firm) return;
+    if (firm.onboardingState !== "COMPLETED") {
+      if (!pathname.includes("/onboarding")) {
+        router.replace(`/${params.firmSlug}/onboarding`);
+      }
+      return;
+    }
 
-  // If no auth, redirect to login
+    // Map segments to feature keys
+    const featureMap: Record<string, string> = {
+      dashboard: "DASHBOARD",
+      staff: "STAFF",
+      projects: "PROJECTS",
+      tasks: "TASKS",
+      attendance: "ATTENDANCE",
+      time: "TIME",
+      leave: "LEAVE",
+      meetings: "MEETINGS",
+      rfi: "RFI",
+      "site-reports": "SITE_REPORTS",
+      crm: "CRM",
+      finance: "FINANCE",
+      "change-requests": "CHANGE_REQUESTS",
+      "variation-orders": "VARIATION_ORDERS"
+    };
+
+    const segment = pathname.split("/").pop() ?? "";
+    const requiredFeature = featureMap[segment];
+    if (requiredFeature && !firm.enabledFeatures.includes(requiredFeature)) {
+      router.replace(`/${params.firmSlug}/dashboard`);
+    }
+  }, [firm, pathname, params.firmSlug, router]);
+
+  // If no auth in Zustand (e.g. after tab restore), redirect to login.
+  // Primary protection is in middleware.ts — this is a UI fallback only.
   useEffect(() => {
     if (!user || !firm) {
       router.replace(`/${params.firmSlug}/login`);
@@ -86,14 +120,18 @@ export default function FirmAppLayout({ children }: { children: React.ReactNode 
   return (
     <>
       <ToastProvider />
-      <div style={{ display: "flex", minHeight: "100vh" }}>
+      {/* DB data bridge — fetches from PostgreSQL and hydrates Zustand */}
+      <DBProvider firmSlug={params.firmSlug} />
+      <div className="flex min-h-screen">
         <Sidebar
           firmSlug={params.firmSlug}
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed((v) => !v)}
+          mobileOpen={mobileOpen}
+          onCloseMobile={() => setMobileOpen(false)}
         />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <Topbar title={pageTitle} firmSlug={params.firmSlug} />
+        <div className="flex-1 flex flex-col min-w-0 relative">
+          <Topbar title={pageTitle} firmSlug={params.firmSlug} onToggleMobile={() => setMobileOpen(true)} />
           <main
             style={{
               flex: 1,

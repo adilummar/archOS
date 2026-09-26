@@ -16,7 +16,7 @@ interface TopbarProps {
   firmSlug: string;
 }
 
-export function Topbar({ title, firmSlug }: TopbarProps) {
+export function Topbar({ title, firmSlug, onToggleMobile }: TopbarProps & { onToggleMobile?: () => void }) {
   const router = useRouter();
   const { user, firm } = useAuthStore();
   const { notifications } = useNotificationStore();
@@ -26,9 +26,14 @@ export function Topbar({ title, firmSlug }: TopbarProps) {
     (n) => !n.read && n.firmId === firm?.id && n.userId === user?.id
   ).length;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Best-effort — clear client state regardless
+    }
     useAuthStore.getState().logout();
-    router.push("/");
+    router.push(`/${firmSlug}/login`);
   };
 
   return (

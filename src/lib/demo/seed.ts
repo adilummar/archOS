@@ -74,7 +74,7 @@ const FORMA = "firm-forma";
 
 // ─── Firms ────────────────────────────────────────────────────────────────────
 
-export const FIRMS: Firm[] = [
+export const FIRMS: any[] = [
   {
     id: CDA,
     name: "Coastal Design Associates",
@@ -249,31 +249,66 @@ const CDA_TEMPLATE_STAGES: TemplateStage[] = [
   { id: "ts-1", name: "Concept & Brief", order: 1, defaultDurationDays: 21,
     description: "Initial brief, site study, concept ideation",
     isClientApprovalRequired: true, isPaymentMilestone: true, paymentPercentage: 15,
-    drawingTypesExpected: ["architectural"] },
+    drawingTypesExpected: ["architectural"],
+    tasks: [
+      { id: "tsk-cb-1", stageId: "ts-1", title: "Site Analysis & Measurements", description: "", order: 1, priority: "high" },
+      { id: "tsk-cb-2", stageId: "ts-1", title: "Client Requirement Gathering", description: "", order: 2, priority: "normal" }
+    ] },
   { id: "ts-2", name: "Schematic Design", order: 2, defaultDurationDays: 30,
     description: "Floor plans, elevations, preliminary sections",
     isClientApprovalRequired: true, isPaymentMilestone: true, paymentPercentage: 20,
-    drawingTypesExpected: ["architectural", "structural"] },
+    drawingTypesExpected: ["architectural", "structural"],
+    tasks: [
+      { id: "tsk-sd-1", stageId: "ts-2", title: "Zoning & Concept Sketches", description: "", order: 1, priority: "normal" },
+      { id: "tsk-sd-2", stageId: "ts-2", title: "Initial Floor Plans (Options A & B)", description: "", order: 2, priority: "high" },
+      { id: "tsk-sd-3", stageId: "ts-2", title: "Client Presentation - Concept", description: "", order: 3, priority: "normal" }
+    ] },
   { id: "ts-3", name: "Design Development", order: 3, defaultDurationDays: 45,
     description: "Detailed design, material specification, interior integration",
     isClientApprovalRequired: false, isPaymentMilestone: false,
-    drawingTypesExpected: ["architectural", "interior", "structural"] },
+    drawingTypesExpected: ["architectural", "interior", "structural"],
+    tasks: [
+      { id: "tsk-dd-1", stageId: "ts-3", title: "Refined Floor Plans", description: "", order: 1, priority: "high" },
+      { id: "tsk-dd-2", stageId: "ts-3", title: "3D Massing & Exterior Elevations", description: "", order: 2, priority: "high" },
+      { id: "tsk-dd-3", stageId: "ts-3", title: "Basic MEP Coordination Layouts", description: "", order: 3, priority: "normal" }
+    ] },
   { id: "ts-4", name: "Working Drawings", order: 4, defaultDurationDays: 60,
     description: "Full construction documentation set",
     isClientApprovalRequired: false, isPaymentMilestone: true, paymentPercentage: 30,
-    drawingTypesExpected: ["architectural", "structural", "electrical", "landscape"] },
+    drawingTypesExpected: ["architectural", "structural", "electrical", "landscape"],
+    tasks: [
+      { id: "tsk-wd-1", stageId: "ts-4", title: "GFC Floor Plans & Sections", description: "", order: 1, priority: "high" },
+      { id: "tsk-wd-2", stageId: "ts-4", title: "Structural Drawings (from Consultant)", description: "", order: 2, priority: "high" },
+      { id: "tsk-wd-3", stageId: "ts-4", title: "Detailed MEP Drawings", description: "", order: 3, priority: "high" },
+      { id: "tsk-wd-4", stageId: "ts-4", title: "Door & Window Schedules", description: "", order: 4, priority: "normal" }
+    ] },
   { id: "ts-5", name: "Permit & Approvals", order: 5, defaultDurationDays: 30,
     description: "Local authority submission and approval tracking",
     isClientApprovalRequired: false, isPaymentMilestone: false,
-    drawingTypesExpected: ["document"] },
+    drawingTypesExpected: ["document"],
+    tasks: [
+      { id: "tsk-pa-1", stageId: "ts-5", title: "Prepare Municipal Drawings", description: "", order: 1, priority: "high" },
+      { id: "tsk-pa-2", stageId: "ts-5", title: "Follow up with Local Authority", description: "", order: 2, priority: "normal" }
+    ] },
   { id: "ts-6", name: "Construction Supervision", order: 6, defaultDurationDays: 180,
     description: "Site visits, RFI responses, progress monitoring",
     isClientApprovalRequired: false, isPaymentMilestone: true, paymentPercentage: 25,
-    drawingTypesExpected: ["architectural", "structural"] },
+    drawingTypesExpected: ["architectural", "structural"],
+    tasks: [
+      { id: "tsk-cs-1", stageId: "ts-6", title: "Site Handover & Marking", description: "", order: 1, priority: "high" },
+      { id: "tsk-cs-2", stageId: "ts-6", title: "Plinth Level Check", description: "", order: 2, priority: "high" },
+      { id: "tsk-cs-3", stageId: "ts-6", title: "Roof Slab Casting Site Visit", description: "", order: 3, priority: "high" },
+      { id: "tsk-cs-4", stageId: "ts-6", title: "Flooring & Finishes Selection", description: "", order: 4, priority: "normal" }
+    ] },
   { id: "ts-7", name: "Completion & Handover", order: 7, defaultDurationDays: 14,
     description: "Punch list, as-built drawings, final handover",
     isClientApprovalRequired: true, isPaymentMilestone: true, paymentPercentage: 10,
-    drawingTypesExpected: ["architectural", "document"] },
+    drawingTypesExpected: ["architectural", "document"],
+    tasks: [
+      { id: "tsk-ch-1", stageId: "ts-7", title: "Punch List Walkthrough", description: "", order: 1, priority: "high" },
+      { id: "tsk-ch-2", stageId: "ts-7", title: "As-Built Drawings Compilation", description: "", order: 2, priority: "normal" },
+      { id: "tsk-ch-3", stageId: "ts-7", title: "Project Closure Sign-off", description: "", order: 3, priority: "normal" }
+    ] },
 ];
 
 export const CDA_TEMPLATE: ProjectTemplate = {
@@ -475,13 +510,13 @@ export const CDA_TASKS: Task[] = [
   {
     id: "t-rv-002", firmId: CDA, projectId: "p-rameshan-villa", stageId: RV_S[2].id,
     title: "Prepare material specification document",
-    assigneeId: "u-divya", assignerId: "u-arjun", status: "todo", priority: "medium",
+    assigneeId: "u-divya", assignerId: "u-arjun", status: "todo", priority: "normal",
     dueDate: d(5), subtasks: [], isBlocked: false, createdAt: iso(-3), updatedAt: iso(-3),
   },
   {
     id: "t-rv-003", firmId: CDA, projectId: "p-rameshan-villa", stageId: RV_S[2].id,
     title: "3D visualisation — living area and master suite",
-    assigneeId: "u-santhosh", assignerId: "u-divya", status: "todo", priority: "medium",
+    assigneeId: "u-santhosh", assignerId: "u-divya", status: "todo", priority: "normal",
     dueDate: d(7), subtasks: [], isBlocked: false, createdAt: iso(-3), updatedAt: iso(-3),
   },
   {
@@ -500,7 +535,7 @@ export const CDA_TASKS: Task[] = [
   {
     id: "t-sg-001", firmId: CDA, projectId: "p-suma-residence", stageId: SG_S[3].id,
     title: "Complete structural drawing set",
-    assigneeId: "u-rahul", assignerId: "u-arjun", status: "in_progress", priority: "urgent",
+    assigneeId: "u-rahul", assignerId: "u-arjun", status: "in_progress", priority: "high",
     dueDate: d(0),
     subtasks: [
       { id: "st-sg1", title: "Column layout plan", completed: true, createdById: "u-rahul", assignedToId: "u-rahul", createdAt: iso(-10) },
@@ -519,13 +554,13 @@ export const CDA_TASKS: Task[] = [
   {
     id: "t-sg-003", firmId: CDA, projectId: "p-suma-residence", stageId: SG_S[3].id,
     title: "Plumbing schematic drawing",
-    assigneeId: "u-nithya", assignerId: "u-rahul", status: "todo", priority: "medium",
+    assigneeId: "u-nithya", assignerId: "u-rahul", status: "todo", priority: "normal",
     dueDate: d(6), subtasks: [], isBlocked: false, createdAt: iso(-5), updatedAt: iso(-5),
   },
   {
     id: "t-sg-004", firmId: CDA, projectId: "p-suma-residence", stageId: SG_S[3].id,
     title: "Door and window schedule",
-    assigneeId: "u-nithya", assignerId: "u-rahul", status: "review", priority: "medium",
+    assigneeId: "u-nithya", assignerId: "u-rahul", status: "review", priority: "normal",
     dueDate: d(-1), subtasks: [], isBlocked: false, createdAt: iso(-12), updatedAt: iso(-2),
   },
   {
@@ -544,13 +579,13 @@ export const CDA_TASKS: Task[] = [
   {
     id: "t-bc-002", firmId: CDA, projectId: "p-beach-club", stageId: BC_S[5].id,
     title: "Respond to RFI-003 — tile specification",
-    assigneeId: "u-divya", assignerId: "u-arjun", status: "todo", priority: "urgent",
+    assigneeId: "u-divya", assignerId: "u-arjun", status: "todo", priority: "high",
     dueDate: d(-2), subtasks: [], isBlocked: false, createdAt: iso(-8), updatedAt: iso(-8),
   },
   {
     id: "t-bc-003", firmId: CDA, projectId: "p-beach-club", stageId: BC_S[5].id,
     title: "Review punch list items 1–5",
-    assigneeId: "u-amal", assignerId: "u-divya", status: "in_progress", priority: "medium",
+    assigneeId: "u-amal", assignerId: "u-divya", status: "in_progress", priority: "normal",
     dueDate: d(3), subtasks: [], isBlocked: false, createdAt: iso(-4), updatedAt: iso(-1),
   },
   // Krishnamoorthi — Schematic
@@ -563,7 +598,7 @@ export const CDA_TASKS: Task[] = [
   {
     id: "t-kc-002", firmId: CDA, projectId: "p-krish-commercial", stageId: KC_S[1].id,
     title: "Update parking layout per local authority norms",
-    assigneeId: "u-lekha", assignerId: "u-divya", status: "todo", priority: "medium",
+    assigneeId: "u-lekha", assignerId: "u-divya", status: "todo", priority: "normal",
     dueDate: d(5), subtasks: [], isBlocked: false, createdAt: iso(-2), updatedAt: iso(-2),
   },
   // Fathima Cottage — Concept
@@ -576,7 +611,7 @@ export const CDA_TASKS: Task[] = [
   {
     id: "t-fc-002", firmId: CDA, projectId: "p-fathima-cottage", stageId: FC_S[0].id,
     title: "Prepare 3 concept scheme options",
-    assigneeId: "u-rahul", assignerId: "u-arjun", status: "in_progress", priority: "medium",
+    assigneeId: "u-rahul", assignerId: "u-arjun", status: "in_progress", priority: "normal",
     dueDate: d(4), subtasks: [], isBlocked: false, createdAt: iso(-5), updatedAt: iso(-1),
   },
   {
@@ -733,14 +768,14 @@ export const CDA_RFIS: RFI[] = [
     title: "Window sill height on east facade — conflict with AC unit",
     description: "Proposed 900mm sill height conflicts with split AC outdoor unit on east wall.",
     raisedById: "con-unity", raiserType: "contractor", raiserName: "Unity Constructions",
-    status: "open", priority: "medium", responseRequiredBy: d(-1), createdAt: iso(-8),
+    status: "open", priority: "normal", responseRequiredBy: d(-1), createdAt: iso(-8),
   },
   {
     id: "rfi-003", firmId: CDA, projectId: "p-beach-club", rfiNumber: "RFI-003",
     title: "Tile specification for outdoor terrace — anti-slip rating",
     description: "Drawing A-015 specifies Kajaria KT-760 but this is not anti-slip rated.",
     raisedById: "con-unity", raiserType: "contractor", raiserName: "Unity Constructions",
-    status: "open", priority: "urgent", responseRequiredBy: d(-2), createdAt: iso(-5),
+    status: "open", priority: "high", responseRequiredBy: d(-2), createdAt: iso(-5),
   },
 ];
 
@@ -1126,7 +1161,7 @@ export const FORMA_TASKS: Task[] = [
   {
     id: "t-f-002", firmId: FORMA, projectId: "p-f-asha-home", stageId: FP2_S[0].id,
     title: "Site measurement and brief documentation",
-    assigneeId: "u-f-manu", assignerId: "u-f-kavitha", status: "todo", priority: "medium",
+    assigneeId: "u-f-manu", assignerId: "u-f-kavitha", status: "todo", priority: "normal",
     dueDate: d(2), subtasks: [], isBlocked: false, createdAt: iso(-2), updatedAt: iso(-2),
   },
 ];
@@ -1206,3 +1241,5 @@ export function seedAllStores(): void {
     messages: [...s.messages, ...CDA_CHAT],
   }));
 }
+
+

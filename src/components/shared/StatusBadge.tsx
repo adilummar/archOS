@@ -22,7 +22,7 @@ type StatusVariant =
   // Punch list
   | "resolved_by_contractor" | "confirmed_by_architect"
   // Priority
-  | "low" | "medium" | "high" | "urgent"
+  | "low" | "normal" | "high"
   // VO
   | "draft_vo" | "pending_client" | "vo_approved" | "vo_rejected"
   // CRM Lead
@@ -86,9 +86,9 @@ const STATUS_MAP: Record<string, StatusConfig> = {
 
   // Priority
   low:                    { label: "Low",              color: "var(--color-text-muted)",      bg: "rgb(107 107 112 / 0.08)" },
-  medium:                 { label: "Medium",           color: "var(--color-info)",            bg: "var(--color-info-muted)" },
+  normal:                 { label: "Normal",           color: "var(--color-info)",            bg: "var(--color-info-muted)" },
   high:                   { label: "High",             color: "var(--color-warning)",         bg: "var(--color-warning-muted)" },
-  urgent:                 { label: "Urgent",           color: "var(--color-destructive)",     bg: "var(--color-destructive-muted)" },
+  
 
   // VO
   draft_vo:               { label: "Draft",            color: "var(--color-text-muted)",      bg: "rgb(107 107 112 / 0.12)" },
@@ -172,3 +172,8 @@ export function StatusBadge({
     </span>
   );
 }
+
+
+
+
+

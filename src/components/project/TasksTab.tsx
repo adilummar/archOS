@@ -40,9 +40,9 @@ import type { Project, Task } from "../../lib/store/types";
 // ─── Priority config ──────────────────────────────────────────────────────────
 
 const PRIORITY_COLOR: Record<string, string> = {
-  urgent: "var(--color-destructive)",
+  High: "var(--color-destructive)",
   high: "var(--color-accent)",
-  medium: "var(--color-warning)",
+  Normal: "var(--color-warning)",
   low: "var(--color-text-muted)",
 };
 
@@ -455,6 +455,7 @@ export function TasksTab({ project }: Props) {
           display: "flex",
           alignItems: "center",
           gap: 10,
+          marginTop: 32,
           marginBottom: 16,
           flexWrap: "wrap",
         }}
@@ -518,9 +519,8 @@ export function TasksTab({ project }: Props) {
           onChange={setPriorityFilter}
           options={[
             { value: "all", label: "All Priorities" },
-            { value: "urgent", label: "Urgent" },
-            { value: "high", label: "High" },
-            { value: "medium", label: "Medium" },
+            { value: "high", label: "high" },
+            { value: "normal", label: "normal" },
             { value: "low", label: "Low" },
           ]}
         />
@@ -664,3 +664,5 @@ function Select({
     </select>
   );
 }
+
+

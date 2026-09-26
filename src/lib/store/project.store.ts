@@ -15,6 +15,7 @@ interface ProjectState {
 
   addProject: (project: Project) => void;
   updateProject: (projectId: string, patch: Partial<Project>) => void;
+  deleteProject: (projectId: string) => void;
   /** on_hold / cancelled → blocks all tasks; resumed → unblocks. */
   setProjectStatus: (projectId: string, status: Project["status"]) => void;
   addStage: (projectId: string, stage: ProjectStage) => void;
@@ -91,6 +92,23 @@ export const useProjectStore = create<ProjectState>()(
           entityId: projectId,
           action: "updated",
           description: `Project "${existing.name}" updated`,
+        });
+      }
+    },
+
+    deleteProject: (projectId) => {
+      const existing = get().projects.find((p) => p.id === projectId);
+      set((state) => {
+        state.projects = state.projects.filter((x) => x.id !== projectId);
+      });
+      if (existing) {
+        useActivityStore.getState().log({
+          firmId: existing.firmId,
+          projectId,
+          entity: "project",
+          entityId: projectId,
+          action: "deleted",
+          description: `Project "${existing.name}" was deleted`,
         });
       }
     },

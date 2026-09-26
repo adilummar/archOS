@@ -2,7 +2,7 @@ export type Role = 'admin' | 'team_lead' | 'staff' | 'accounts'
 export type PortalRole = 'client' | 'contractor'
 export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'cancelled'
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'approved' | 'done' | 'blocked'
-export type Priority = 'low' | 'medium' | 'high' | 'urgent'
+export type Priority = 'low' | 'normal' | 'high'
 export type ApprovalStatus = 'pending' | 'approved' | 'revision_requested' | 'rejected'
 export type FileStatus = 'informational' | 'final' | 'contractor_view' | 'superseded'
 export type FileCategory =
@@ -21,9 +21,13 @@ export type RequestStatus = 'pending' | 'fulfilled' | 'rejected'
 export type DrawingPrefix = 'A' | 'S' | 'E' | 'I' | 'L' | 'D' | 'P' | 'O'
 
 export interface Firm {
-  id: string; name: string; logo?: string; address: string
+  id: string; name: string; slug: string; status: 'ACTIVE' | 'SUSPENDED';
+  onboardingState: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  enabledFeatures: string[];
+  logo?: string; address: string
   phone: string; email: string; gstin: string; website?: string
   planType: 'starter' | 'professional' | 'enterprise'
+  priorityPeriodDays: number; minimumTaskLeadTimeDays: number;
   settings: FirmSettings; createdAt: string
 }
 
@@ -56,11 +60,16 @@ export interface Contractor {
   portalEnabled: boolean
 }
 
+export interface TemplateTask {
+  id: string; stageId: string; title: string; description: string; order: number; priority: "low" | "normal" | "high";
+}
+
 export interface TemplateStage {
   id: string; name: string; order: number; defaultDurationDays: number
   description: string; isClientApprovalRequired: boolean
   isPaymentMilestone: boolean; paymentPercentage?: number
   drawingTypesExpected: FileCategory[]
+  tasks?: TemplateTask[];
 }
 
 export interface ProjectTemplate {
@@ -291,3 +300,4 @@ export interface ActivityLog {
   projectId?: string; entity: string; entityId: string
   action: string; description: string; createdAt: string
 }
+
