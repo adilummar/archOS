@@ -10,6 +10,8 @@ import { sessionOptions, type SessionData, platformSessionOptions, type Platform
 const PUBLIC_PATHS = [
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/auth/super-admin/login",
+  "/api/auth/super-admin/logout",
   "/client",
   "/contractor",
   "/_next",
