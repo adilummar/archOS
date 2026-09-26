@@ -1,21 +1,34 @@
 import { prisma } from "./db";
+import { platformPrisma } from "./platform-db";
 import { Prisma } from "@prisma/client";
 import { AuthContext } from "@/services/auth.service";
+
+// Cache whether archos_app_role exists so we only check once per process lifecycle
+let roleExists: boolean | null = null;
+
+async function checkRoleExists(): Promise<boolean> {
+  if (roleExists !== null) return roleExists;
+  try {
+    const result = await platformPrisma.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(*) as count FROM pg_roles WHERE rolname = 'archos_app_role'
+    `;
+    roleExists = Number(result[0].count) > 0;
+  } catch {
+    roleExists = false;
+  }
+  return roleExists;
+}
 
 export async function withAuthTx<T>(
   ctx: AuthContext,
   callback: (tx: Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<T>
 ): Promise<T> {
+  const hasRole = await checkRoleExists();
+
   return prisma.$transaction(async (tx) => {
-    // Try to switch to the restricted role for RLS enforcement.
-    // If archos_app_role doesn't exist yet (needs one-time server sudo setup),
-    // we gracefully skip it and continue without the role restriction.
-    try {
+    if (hasRole) {
+      // Switch to restricted role for RLS enforcement
       await tx.$executeRawUnsafe('SET LOCAL ROLE archos_app_role');
-    } catch {
-      // archos_app_role not yet created on this server — skip role switch.
-      // Run: sudo -u postgres psql -c "CREATE ROLE archos_app_role;"
-      //      sudo -u postgres psql -c "GRANT archos_app_role TO <db_user>;"
     }
 
     // Parameterized config setting for strict RLS safety
