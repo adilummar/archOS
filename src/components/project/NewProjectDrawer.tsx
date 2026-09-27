@@ -170,13 +170,10 @@ export function NewProjectDrawer({ open, onClose }: Props) {
         feeAgreed: feeAgreed ? Number(feeAgreed) : undefined,
       });
 
-      // Update Zustand store locally to avoid hard reload
-      addProject(project);
-
       toast(`Project "${name}" created from Template!`, "success");
       reset();
       onClose();
-      router.push(`/${firmSlug}/projects/${project.id}`);
+      window.location.href = `/${firmSlug}/projects/${project.id}`;
     } catch (err: any) {
       setError(err.message || "Failed to create project");
     }
