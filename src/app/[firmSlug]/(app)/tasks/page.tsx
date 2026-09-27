@@ -273,13 +273,16 @@ export default function TasksPage() {
   }, []);
 
   const firmProjects = useMemo(
-    () => projects.filter((p) => p.firmId === firm?.id),
+    () => projects.filter((p) => p.firmId === firm?.id && p.status === "active"),
     [projects, firm]
   );
 
   const filteredTasks = useMemo(() => {
     if (!firm || !user) return [];
-    let result = tasks.filter((t) => t.firmId === firm.id);
+    
+    // Only show tasks for active projects on this global view
+    const activeProjectIds = new Set(firmProjects.map(p => p.id));
+    let result = tasks.filter((t) => t.firmId === firm.id && activeProjectIds.has(t.projectId));
 
     
 
