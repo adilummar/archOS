@@ -408,7 +408,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <Calendar size={14} color="var(--color-text-muted)" strokeWidth={1.5} />
                 <input
                   type="date"
-                  value={task.dueDate}
+                  value={task.dueDate ? task.dueDate.split('T')[0] : ''}
                   onChange={handleDateChange}
                   disabled={readonly}
                   style={{
