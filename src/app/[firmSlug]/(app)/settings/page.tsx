@@ -250,11 +250,15 @@ function Select({
   onChange,
   options,
   disabled = false,
+  iconOnly = false,
+  title,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   disabled?: boolean;
+  iconOnly?: boolean;
+  title?: string;
 }) {
   return (
     <select
@@ -289,12 +293,16 @@ function PrimaryButton({
   icon,
   variant = "primary",
   disabled = false,
+  iconOnly = false,
+  title,
 }: {
   onClick: () => void;
   children: React.ReactNode;
   icon?: React.ReactNode;
   variant?: "primary" | "ghost" | "danger" | "muted";
   disabled?: boolean;
+  iconOnly?: boolean;
+  title?: string;
 }) {
   const styles: Record<string, React.CSSProperties> = {
     primary: {
@@ -327,7 +335,7 @@ function PrimaryButton({
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
-        padding: "7px 14px",
+        padding: iconOnly ? "7px" : "7px 14px",
         borderRadius: "var(--radius-sm)",
         fontSize: "var(--text-sm)",
         fontWeight: 500,
@@ -541,9 +549,8 @@ function FirmProfileSection() {
                 onClick={() => setEditing(true)}
                 icon={<Edit2 size={13} strokeWidth={2} />}
                 variant="ghost"
-              >
-                Edit
-              </PrimaryButton>
+                  iconOnly title="Edit Staff">Edit
+                </PrimaryButton>
             ) : (
               <div style={{ display: "flex", gap: 8 }}>
                 <PrimaryButton
@@ -771,9 +778,8 @@ function StaffRow({
             onClick={() => onReactivate(user.id)}
             icon={<RotateCcw size={12} strokeWidth={2} />}
             variant="muted"
-          >
-            Reactivate
-          </PrimaryButton>
+              iconOnly title="Reactivate Staff">Reactivate
+            </PrimaryButton>
         ) : (
           <>
             <PrimaryButton
@@ -783,33 +789,29 @@ function StaffRow({
               })}
               icon={<Save size={12} strokeWidth={2} />}
               variant="ghost"
-            >
-              Save
-            </PrimaryButton>
+                iconOnly title="Save">Save
+              </PrimaryButton>
             {onChangePassword && (
               <PrimaryButton
                 onClick={() => onChangePassword(user.id, user.name)}
                 icon={<Key size={12} strokeWidth={2} />}
                 variant="ghost"
-              >
-                Pass
-              </PrimaryButton>
+                  iconOnly title="Change Password">Pass
+                </PrimaryButton>
             )}
             {onEdit && (
               <PrimaryButton
                 onClick={() => onEdit(user)}
                 icon={<Edit2 size={12} strokeWidth={2} />}
                 variant="ghost"
-              >
-                Edit
-              </PrimaryButton>
+                  iconOnly title="Edit Staff">Edit
+                </PrimaryButton>
             )}
             <PrimaryButton
               onClick={() => onDiscontinue(user.id)}
               icon={<Ban size={12} strokeWidth={2} />}
               variant="danger"
-            >
-              Discontinue
+              iconOnly title="Discontinue Staff">Discontinue
             </PrimaryButton>
           </>
         )}
