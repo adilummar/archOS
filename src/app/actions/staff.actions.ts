@@ -43,10 +43,10 @@ export async function addStaffMember(data: {
   const ctx = await getCtx();
   // Verify caller is admin
   const caller = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true, firmId: true } });
-  if (!caller || caller.role !== "admin") throw new Error("Only admins can add staff");
+  if (!caller || caller.role !== "admin") return { error: "Only admins can add staff" };
 
   const existing = await prisma.user.findUnique({ where: { email: data.email.toLowerCase().trim() } });
-  if (existing) throw new Error("A user with this email already exists");
+  if (existing) return { error: "A user with this email already exists" };
 
   const passwordHash = await bcrypt.hash(data.password, 10);
 

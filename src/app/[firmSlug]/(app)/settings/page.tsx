@@ -897,7 +897,7 @@ function StaffRolesSection() {
     setActionLoading(true);
     try {
       const fd = new FormData(e.currentTarget);
-      await addStaffMember({
+      const res = await addStaffMember({
         firmId: authFirm.id,
         name: fd.get("name") as string,
         email: fd.get("email") as string,
@@ -906,6 +906,10 @@ function StaffRolesSection() {
         designation: fd.get("designation") as string,
         costRatePerHour: Number(fd.get("costRatePerHour")) || 0
       });
+      if (res && 'error' in res && (res as any).error) {
+        toast((res as any).error, "error");
+        return;
+      }
       toast("Staff added successfully", "success");
       setShowAddModal(false);
       window.location.reload();
