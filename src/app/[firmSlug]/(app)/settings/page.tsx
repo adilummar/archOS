@@ -207,6 +207,7 @@ function Input({
   placeholder = "",
   name,
   onBlur,
+  required,
 }: {
   value: string | number;
   onChange: (v: string) => void;
@@ -215,6 +216,7 @@ function Input({
   placeholder?: string;
   name?: string;
   onBlur?: () => void;
+  required?: boolean;
 }) {
   return (
     <input
@@ -224,6 +226,7 @@ function Input({
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       placeholder={placeholder}
+      required={required}
       style={{
         width: "100%",
         padding: "8px 12px",
@@ -1055,9 +1058,9 @@ function StaffRolesSection() {
               <button onClick={() => setShowAddModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)" }}><X size={18} /></button>
             </div>
             <form onSubmit={handleAddStaff} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              <div><FieldLabel>Name</FieldLabel><Input name="name" value={undefined as any} onChange={() => {}} placeholder="Full Name" /></div>
-              <div><FieldLabel>Email</FieldLabel><Input name="email" type="email" value={undefined as any} onChange={() => {}} placeholder="email@studio.com" /></div>
-              <div><FieldLabel>Password</FieldLabel><Input name="password" type="text" value={undefined as any} onChange={() => {}} placeholder="Temporary Password" /></div>
+              <div><FieldLabel>Name</FieldLabel><Input name="name" value={undefined as any} onChange={() => {}} placeholder="Full Name" required /></div>
+              <div><FieldLabel>Email</FieldLabel><Input name="email" type="email" value={undefined as any} onChange={() => {}} placeholder="email@studio.com" required /></div>
+              <div><FieldLabel>Password</FieldLabel><Input name="password" type="text" value={undefined as any} onChange={() => {}} placeholder="Temporary Password" required /></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><FieldLabel>Role</FieldLabel><select name="role" style={{ width: "100%", padding: "8px 12px", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)" }}><option value="staff">Staff</option><option value="team_lead">Team Lead</option><option value="admin">Admin</option><option value="accounts">Accounts</option></select></div>
                 <div><FieldLabel>Cost / Hr</FieldLabel><Input name="costRatePerHour" type="number" value={undefined as any} onChange={() => {}} placeholder="â‚¹" /></div>
