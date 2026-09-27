@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { format, parseISO, isPast, isToday } from "date-fns";
 import {
   CheckSquare,
@@ -252,6 +252,12 @@ export default function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState<"all" | Priority>("all");
   const [projectFilter, setProjectFilter] = useState("all");
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
+  const [quickFilter, setQuickFilter] = useState<"all" | "overdue" | "priority" | "review">("all");
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const q = searchParams?.get("filter");
+    if (q === "overdue" || q === "priority" || q === "review") setQuickFilter(q);
+  }, [searchParams]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
 
@@ -288,6 +294,15 @@ export default function TasksPage() {
     if (user.role === "staff") result = result.filter(checkImplicit);
     else if (showMyTasksOnly) result = result.filter(checkImplicit);
 
+    
+    if (quickFilter === "overdue") {
+      result = result.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && !["done", "approved"].includes(t.status));
+    } else if (quickFilter === "priority") {
+      result = result.filter(t => t.priority === "high");
+    } else if (quickFilter === "review") {
+      result = result.filter(t => t.status === "review");
+    }
+
     if (statusFilter !== "all") {
       result = result.filter((t) => t.status === statusFilter);
     }
@@ -312,7 +327,7 @@ export default function TasksPage() {
       if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
       return a.dueDate.localeCompare(b.dueDate);
     });
-  }, [tasks, firm, user, statusFilter, priorityFilter, projectFilter, search, showMyTasksOnly]);
+  }, [tasks, firm, user, statusFilter, priorityFilter, projectFilter, search, showMyTasksOnly, quickFilter]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
