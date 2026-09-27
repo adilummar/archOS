@@ -71,6 +71,42 @@ export async function addStaffMember(data: {
   return user;
 }
 
+export async function editStaffMember(
+  userId: string,
+  data: {
+    name?: string;
+    email?: string;
+    designation?: string;
+    role?: string;
+    costRatePerHour?: number;
+    phone?: string;
+  }
+) {
+  const ctx = await getCtx();
+  const caller = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true, firmId: true } });
+  if (!caller || caller.role !== "admin") throw new Error("Only admins can edit staff");
+
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { firmId: true } });
+  if (!target || target.firmId !== caller.firmId) throw new Error("Staff member not found");
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: data.name,
+      email: data.email?.toLowerCase().trim(),
+      designation: data.designation,
+      role: data.role,
+      costRatePerHour: data.costRatePerHour,
+      phone: data.phone,
+    },
+    select: { id: true, name: true, email: true, role: true, status: true, designation: true },
+  });
+
+  revalidatePath("/[firmSlug]/settings", "page");
+  revalidatePath("/[firmSlug]/staff", "page");
+  return updated;
+}
+
 export async function suspendStaffMember(staffId: string) {
   const ctx = await getCtx();
   const caller = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true } });
