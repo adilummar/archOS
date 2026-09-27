@@ -89,7 +89,6 @@ export default function StaffPage() {
 
   const load = useCallback(async () => {
     if (!user || !firm) return;
-    setLoading(true);
     try {
       if (isAdmin) {
         const data = await getStaffWithAttendance(firm.id, user.email);
