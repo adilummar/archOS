@@ -1,24 +1,25 @@
-const fs = require('fs');
-let content = fs.readFileSync('src/components/drawers/TaskDrawer.tsx', 'utf8');
+import re
 
-// 1. Import TaskActions
-if (!content.includes('import * as TaskActions')) {
+with open("src/components/drawers/TaskDrawer.tsx", "r", encoding="utf-8") as f:
+    content = f.read()
+
+# 1. Import TaskActions
+if "import * as TaskActions" not in content:
     content = content.replace(
         'import { toast } from "../../lib/store/toast.store";',
         'import { toast } from "../../lib/store/toast.store";\nimport * as TaskActions from "@/app/actions/task.actions";'
-    );
-}
+    )
 
-// 2. Make Status Read-Only
-const selectRegex = /<select\s+value=\{task\.status\}[\s\S]*?<\/select>/;
-const replacementStatus = `<div style={{ padding: "6px 12px", background: "var(--color-bg-input)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
-            <StatusBadge status={task.status as any} size="sm" />
-          </div>`;
-content = content.replace(selectRegex, replacementStatus);
+# 2. Make Status Read-Only (replace the <select>)
+select_regex = r"<select\s+value=\{task\.status\}[\s\S]*?</select>"
+replacement_status = """<div style={{ padding: "6px 12px", background: "var(--color-bg-input)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
+            <StatusBadge status={task.status} size="sm" />
+          </div>"""
+content = re.sub(select_regex, replacement_status, content)
 
 
-// 3. Add Workflow Handlers
-const handlers = `
+# 3. Add Workflow Handlers
+handlers = """
   const handleAssignActiveTask = async () => {
     if (!pendingDate) {
       toast("Due date is required to assign.", "error");
@@ -30,6 +31,7 @@ const handlers = `
       await TaskActions.assignActiveTask(task.id, new Date(pendingDate), finalAssigneeId);
       toast("Task assigned successfully", "success");
       setPendingDate(null);
+      // Wait for revalidation
       onClose();
     } catch (err: any) {
       toast(err.message || "Failed to assign task", "error");
@@ -94,13 +96,13 @@ const handlers = `
   };
 
   const handleApply = async () => {
-`;
-content = content.replace("  const handleApply = async () => {", handlers);
+"""
+content = content.replace("  const handleApply = async () => {", handlers)
 
 
-// 4. Add Workflow Buttons to the bottom
-const buttonsRegex = /\{\/\* Apply Changes Button \*\/\}[\s\S]*?\{\/\* Tabs \*\/\}/;
-const newButtons = `{/* Workflow Buttons */}
+# 4. Add Workflow Buttons to the bottom
+buttons_regex = r"\{/\* Apply Changes Button \*/\}[\s\S]*?\{/\* Tabs \*/\}"
+new_buttons = """{/* Workflow Buttons */}
         {!readonly && (
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8, paddingBottom: 16, borderBottom: "1px solid var(--color-border)" }}>
             
@@ -165,8 +167,10 @@ const newButtons = `{/* Workflow Buttons */}
           </div>
         )}
 
-        {/* Tabs */}`;
-content = content.replace(buttonsRegex, newButtons);
+        {/* Tabs */}"""
+content = re.sub(buttons_regex, new_buttons, content)
 
-fs.writeFileSync('src/components/drawers/TaskDrawer.tsx', content, 'utf8');
-console.log("Patched TaskDrawer.tsx with node script");
+with open("src/components/drawers/TaskDrawer.tsx", "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("Patched TaskDrawer.tsx")

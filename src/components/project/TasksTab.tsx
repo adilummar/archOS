@@ -166,12 +166,18 @@ function TaskRow({
 // ─── Kanban column ────────────────────────────────────────────────────────────
 
 const KANBAN_COLUMNS = [
-  { id: "todo",        label: "To Do",       color: "var(--color-text-muted)" },
+  { id: "future", label: "Future", color: "var(--color-text-muted)" },
+  { id: "active", label: "Active", color: "var(--color-info)" },
+  { id: "assigned", label: "Assigned", color: "var(--color-info)" },
+  { id: "todo", label: "To Do", color: "var(--color-text-muted)" },
   { id: "in_progress", label: "In Progress", color: "var(--color-info)" },
-  { id: "review",      label: "Review",      color: "var(--color-warning)" },
-  { id: "approved",    label: "Approved",    color: "var(--color-success)" },
-  { id: "done",        label: "Done",        color: "var(--color-success)" },
-  { id: "blocked",     label: "Blocked",     color: "var(--color-destructive)" },
+  { id: "review", label: "Review", color: "var(--color-warning)" },
+  { id: "submitted_for_review", label: "Submitted for Review", color: "var(--color-warning)" },
+  { id: "revision_requested", label: "Revision Requested", color: "var(--color-destructive)" },
+  { id: "approved", label: "Approved", color: "var(--color-success)" },
+  { id: "done", label: "Done", color: "var(--color-success)" },
+  { id: "completed", label: "Completed", color: "var(--color-success)" },
+  { id: "blocked", label: "Blocked", color: "var(--color-destructive)" },
 ] as const;
 
 function SortableTaskCard({

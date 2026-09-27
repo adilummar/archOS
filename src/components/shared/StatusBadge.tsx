@@ -39,6 +39,9 @@ interface StatusConfig {
 
 const STATUS_MAP: Record<string, StatusConfig> = {
   // Task statuses
+  future:                 { label: "Future",          color: "var(--color-text-muted)",     bg: "rgb(107 107 112 / 0.12)" },
+  assigned:               { label: "Assigned",        color: "var(--color-info)",            bg: "var(--color-info-muted)" },
+  submitted_for_review:   { label: "For Review",      color: "var(--color-warning)",         bg: "var(--color-warning-muted)" },
   todo:                   { label: "To Do",           color: "var(--color-text-muted)",     bg: "rgb(107 107 112 / 0.12)" },
   in_progress:            { label: "In Progress",     color: "var(--color-info)",            bg: "var(--color-info-muted)" },
   review:                 { label: "Review",           color: "var(--color-warning)",         bg: "var(--color-warning-muted)" },

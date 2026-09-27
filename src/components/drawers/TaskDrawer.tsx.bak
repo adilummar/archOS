@@ -10,7 +10,6 @@ import { useAuthStore } from "../../lib/store/auth.store";
 import { useUpdateTask, useDeleteTask, useReviewTask, useOverrideTask, useAddSubtask, useToggleSubtask } from "@/hooks/useTasks";
 import { useProjectStore } from "../../lib/store/project.store";
 import { toast } from "../../lib/store/toast.store";
-import * as TaskActions from "@/app/actions/task.actions";
 import { useActivityStore } from "../../lib/store/activity.store";
 import { useRequestStore } from "../../lib/store/request.store";
 import {
@@ -252,83 +251,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
     setPendingDate(e.target.value);
   };
 
-
-  const handleAssignActiveTask = async () => {
-    if (!pendingDate) {
-      toast("Due date is required to assign.", "error");
-      return;
-    }
-    const finalAssigneeId = task.assigneeId || undefined;
-    setIsSaving(true);
-    try {
-      await TaskActions.assignActiveTask(task.id, new Date(pendingDate), finalAssigneeId);
-      toast("Task assigned successfully", "success");
-      setPendingDate(null);
-      onClose();
-    } catch (err: any) {
-      toast(err.message || "Failed to assign task", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleStartWork = async () => {
-    setIsSaving(true);
-    try {
-      await updateTaskMut.mutateAsync({ taskId: task.id, data: { status: "in_progress" } });
-      toast("Task started", "success");
-    } catch (err: any) {
-      toast(err.message, "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleGiveForReview = async () => {
-    setIsSaving(true);
-    try {
-      await TaskActions.submitTaskForReview(task.id);
-      toast("Task submitted for review", "success");
-      onClose();
-    } catch (err: any) {
-      toast(err.message, "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleApprove = async () => {
-    setIsSaving(true);
-    try {
-      await TaskActions.approveTaskSequence(task.id);
-      toast("Task approved and completed", "success");
-      onClose();
-    } catch (err: any) {
-      toast(err.message, "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleRequestRevision = async () => {
-    const remark = prompt("Enter revision remark:");
-    if (!remark) return;
-    const dateStr = prompt("Enter new due date (YYYY-MM-DD):", pendingDate || "");
-    if (!dateStr) return;
-    setIsSaving(true);
-    try {
-      await TaskActions.requestTaskRevisionSequence(task.id, remark, new Date(dateStr));
-      toast("Revision requested", "success");
-      onClose();
-    } catch (err: any) {
-      toast(err.message, "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleApply = async () => {
-
     const patch: Record<string, any> = {};
     if (titleEdit.trim() !== "" && titleEdit !== task.title) patch.title = titleEdit;
     if (descEdit !== (task.description || "")) patch.description = descEdit;
@@ -466,9 +389,27 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
           <span style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-muted)" }}>
             Status
           </span>
-          <div style={{ padding: "6px 12px", background: "var(--color-bg-input)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
-            <StatusBadge status={task.status as any} size="sm" />
-          </div>
+          <select
+            value={task.status}
+            onChange={handleStatusChange}
+            disabled={readonly}
+            style={{
+              background: "var(--color-bg-input)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-sm)",
+              padding: "6px 12px",
+              fontSize: "13px",
+              color: "var(--color-text-primary)",
+              outline: "none",
+              transition: "border-color 0.2s"
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = "var(--color-accent)"}
+            onBlur={(e) => e.currentTarget.style.borderColor = "var(--color-border)"}
+          >
+            {statusOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Meta Row — Assignee + Due Date + Priority */}

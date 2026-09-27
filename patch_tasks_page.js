@@ -1,27 +1,25 @@
 const fs = require('fs');
-let c = fs.readFileSync('src/app/[firmSlug]/(app)/tasks/page.tsx', 'utf8');
+const filePath = 'src/app/[firmSlug]/(app)/tasks/page.tsx';
+let content = fs.readFileSync(filePath, 'utf8');
 
-c = c.replace(/const STATUS_OPTIONS[\s\S]*?\];/, `const STATUS_OPTIONS: { value: "all" | TaskStatus; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "future", label: "Future" },
-  { value: "active", label: "Active" },
-  { value: "assigned", label: "Assigned" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "submitted_for_review", label: "Review" },
-  { value: "revision_requested", label: "Revision Req" },
-  { value: "completed", label: "Completed" },
-  { value: "blocked", label: "Blocked" },
-];`);
+const implicitCheck = `    const checkImplicit = (t: Task) => {
+      if (t.assigneeId === user.id) return true;
+      if (!t.assigneeId) {
+        const p = projects.find(proj => proj.id === t.projectId);
+        if (p && p.staffIds.length === 1 && p.staffIds[0] === user.id && t.stageId === p.currentStageId) return true;
+      }
+      return false;
+    };`;
 
-c = c.replace(/const KANBAN_COLUMNS[\s\S]*?\];/, `const KANBAN_COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
-  { id: "future", label: "Future", color: "var(--color-text-muted)" },
-  { id: "active", label: "Active", color: "var(--color-warning)" },
-  { id: "assigned", label: "Assigned", color: "var(--color-info, #3b82f6)" },
-  { id: "in_progress", label: "In Progress", color: "var(--color-info, #3b82f6)" },
-  { id: "submitted_for_review", label: "Review", color: "var(--color-warning)" },
-  { id: "revision_requested", label: "Revision Req", color: "var(--color-destructive)" },
-  { id: "completed", label: "Completed", color: "var(--color-success)" },
-  { id: "blocked", label: "Blocked", color: "var(--color-destructive)" },
-];`);
+const implicitReplacement = `    const checkImplicit = (t: Task) => {
+      if (t.assigneeId === user.id) return true;
+      return false;
+    };`;
 
-fs.writeFileSync('src/app/[firmSlug]/(app)/tasks/page.tsx', c);
+if (content.includes(implicitCheck)) {
+  content = content.replace(implicitCheck, implicitReplacement);
+  fs.writeFileSync(filePath, content, 'utf8');
+  console.log("Fixed implicit check in TasksPage");
+} else {
+  console.log("Could not find implicit check in TasksPage");
+}

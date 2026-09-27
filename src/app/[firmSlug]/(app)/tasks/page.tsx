@@ -285,10 +285,6 @@ export default function TasksPage() {
 
     const checkImplicit = (t: Task) => {
       if (t.assigneeId === user.id) return true;
-      if (!t.assigneeId) {
-        const p = projects.find(proj => proj.id === t.projectId);
-        if (p && p.staffIds.length === 1 && p.staffIds[0] === user.id && t.stageId === p.currentStageId) return true;
-      }
       return false;
     };
     if (user.role === "staff") result = result.filter(checkImplicit);
@@ -296,7 +292,7 @@ export default function TasksPage() {
 
     
     if (quickFilter === "overdue") {
-      result = result.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && !["done", "approved"].includes(t.status));
+      result = result.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && !["completed", "done", "approved"].includes(t.status));
     } else if (quickFilter === "priority") {
       result = result.filter(t => t.priority === "high");
     } else if (quickFilter === "review") {
