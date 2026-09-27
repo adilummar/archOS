@@ -210,15 +210,10 @@ export function DBProvider({ firmSlug }: DBProviderProps) {
           updatedAt: p.updatedAt.toISOString(),
         }));
 
+        // ── Full replace — clears deleted projects from persisted localStorage cache ──
         useProjectStore.setState((projectState) => {
-          for (const p of zustandProjects) {
-            const idx = projectState.projects.findIndex((x) => x.id === p.id);
-            if (idx === -1) {
-              projectState.projects.push(p);
-            } else {
-              projectState.projects[idx] = { ...projectState.projects[idx], ...p };
-            }
-          }
+          projectState.projects = projectState.projects.filter(p => p.firmId !== firm.id);
+          projectState.projects.push(...zustandProjects);
         });
 
         // ── Hydrate task store ───────────────────────────────────────────
@@ -256,15 +251,10 @@ export function DBProvider({ firmSlug }: DBProviderProps) {
           updatedAt: t.updatedAt.toISOString(),
         }));
 
+        // ── Full replace — clears deleted tasks from persisted localStorage cache ──
         useTaskStore.setState((taskState) => {
-          for (const t of zustandTasks) {
-            const idx = taskState.tasks.findIndex((x) => x.id === t.id);
-            if (idx === -1) {
-              taskState.tasks.push(t);
-            } else {
-              taskState.tasks[idx] = { ...taskState.tasks[idx], ...t };
-            }
-          }
+          taskState.tasks = taskState.tasks.filter(t => t.firmId !== firm.id);
+          taskState.tasks.push(...zustandTasks);
         });
 
         console.log(
