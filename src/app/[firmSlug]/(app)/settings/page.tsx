@@ -2121,6 +2121,14 @@ function ProjectTemplatesSection() {
     templates.find((t) => t.firmId === firm?.id)?.id || null
   );
 
+  // Auto-select first template when templates load from DB (store starts empty on mount)
+  useEffect(() => {
+    if (!activeTemplateId) {
+      const first = templates.find((t) => t.firmId === firm?.id);
+      if (first) setActiveTemplateId(first.id);
+    }
+  }, [templates, firm?.id, activeTemplateId]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
