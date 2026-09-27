@@ -1,34 +1,30 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/app/[firmSlug]/(app)/tasks/page.tsx', 'utf8');
+const filePath = 'src/services/task.service.ts';
+let content = fs.readFileSync(filePath, 'utf8');
 
-// 1. Add useSearchParams
-content = content.replace('useParams, useRouter }', 'useParams, useRouter, useSearchParams }');
+const oldFunc = `export async function getAllTasksByFirm(ctx: AuthContext, firmId: string) {
+  return withAuthTx(ctx, async (tx) => {
+    return tx.task.findMany({
+      where: { firmId },`;
 
-// 2. Add quickFilter state
-content = content.replace(
-  'const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);',
-  `const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);\n  const [quickFilter, setQuickFilter] = useState<"all" | "overdue" | "priority" | "review">("all");\n  const searchParams = useSearchParams();\n  useEffect(() => {\n    const q = searchParams?.get("filter");\n    if (q === "overdue" || q === "priority" || q === "review") setQuickFilter(q);\n  }, [searchParams]);`
-);
-
-// 3. Add quickFilter to dependencies
-content = content.replace(
-  '[tasks, firm, user, statusFilter, priorityFilter, projectFilter, search, showMyTasksOnly]',
-  '[tasks, firm, user, statusFilter, priorityFilter, projectFilter, search, showMyTasksOnly, quickFilter]'
-);
-
-// 4. Implement quickFilter logic in useMemo
-const filterLogic = `
-    if (quickFilter === "overdue") {
-      result = result.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && !["done", "approved"].includes(t.status));
-    } else if (quickFilter === "priority") {
-      result = result.filter(t => t.priority === "high");
-    } else if (quickFilter === "review") {
-      result = result.filter(t => t.status === "review");
+const newFunc = `export async function getAllTasksByFirm(ctx: AuthContext, firmId: string) {
+  return withAuthTx(ctx, async (tx) => {
+    let where: any = { firmId };
+    if (ctx.role !== "admin") {
+      where.project = {
+        OR: [
+          { teamLeadId: ctx.userId },
+          { staffMembers: { some: { userId: ctx.userId } } }
+        ]
+      };
     }
-`;
-content = content.replace(
-  'if (statusFilter !== "all") {',
-  filterLogic + '\n    if (statusFilter !== "all") {'
-);
+    return tx.task.findMany({
+      where,`;
 
-fs.writeFileSync('src/app/[firmSlug]/(app)/tasks/page.tsx', content);
+if (content.includes(oldFunc)) {
+  content = content.replace(oldFunc, newFunc);
+  fs.writeFileSync(filePath, content, 'utf8');
+  console.log("Patched getAllTasksByFirm");
+} else {
+  console.log("Could not find exact function signature to replace.");
+}

@@ -20,8 +20,17 @@ export async function getTasksByProject(ctx: AuthContext, projectId: string) {
 
 export async function getAllTasksByFirm(ctx: AuthContext, firmId: string) {
   return withAuthTx(ctx, async (tx) => {
+    let where: any = { firmId };
+    if (ctx.role !== "admin") {
+      where.project = {
+        OR: [
+          { teamLeadId: ctx.userId },
+          { staffMembers: { some: { userId: ctx.userId } } }
+        ]
+      };
+    }
     return tx.task.findMany({
-      where: { firmId },
+      where,
       include: {
         subtasks: { orderBy: { createdAt: "asc" } },
         reviewCycles: true,

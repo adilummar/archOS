@@ -7,10 +7,15 @@ export async function getProjects(ctx: AuthContext, firmId: string) {
   return withAuthTx(ctx, async tx => {
     return withAuthTx(ctx, async tx => {
       return withAuthTx(ctx, async tx => {
+        let where: any = { firmId };
+        if (ctx.role !== "admin") {
+          where.OR = [
+            { teamLeadId: ctx.userId },
+            { staffMembers: { some: { userId: ctx.userId } } }
+          ];
+        }
         return tx.project.findMany({
-          where: {
-            firmId
-          },
+          where,
           include: {
             client: {
               select: {

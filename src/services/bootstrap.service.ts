@@ -34,8 +34,15 @@ export async function getStaffByFirm(ctx: AuthContext, firmId: string) {
 
 export async function getProjectsByFirm(ctx: AuthContext, firmId: string) {
   return withAuthTx(ctx, async (tx) => {
+    let where: any = { firmId };
+    if (ctx.role !== "admin") {
+      where.OR = [
+        { teamLeadId: ctx.userId },
+        { staffMembers: { some: { userId: ctx.userId } } }
+      ];
+    }
     return tx.project.findMany({
-      where: { firmId },
+      where,
       include: {
         client: { select: { id: true, name: true, company: true } },
         teamLead: {
@@ -63,8 +70,15 @@ export async function getProjectsByFirm(ctx: AuthContext, firmId: string) {
 
 export async function getProjectWithTasks(ctx: AuthContext, projectId: string) {
   return withAuthTx(ctx, async (tx) => {
-    return tx.project.findUnique({
-      where: { id: projectId },
+    let where: any = { id: projectId, firmId: ctx.firmId };
+    if (ctx.role !== "admin") {
+      where.OR = [
+        { teamLeadId: ctx.userId },
+        { staffMembers: { some: { userId: ctx.userId } } }
+      ];
+    }
+    return tx.project.findFirst({
+      where,
       include: {
         client: true,
         teamLead: {
