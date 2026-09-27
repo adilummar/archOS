@@ -29,11 +29,11 @@ export function Topbar({ title, firmSlug, onToggleMobile }: TopbarProps & { onTo
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-    } catch {
-      // Best-effort — clear client state regardless
+    } catch (err) {
+      console.error("Logout error", err);
     }
     useAuthStore.getState().logout();
-    router.push(`/${firmSlug}/login`);
+    window.location.href = `/${firmSlug}/login`;
   };
 
   return (

@@ -24,7 +24,7 @@ export function PortalHeader({ projectId, type = "client" }: PortalHeaderProps) 
 
   const handleLogout = () => {
     logoutPortal();
-    router.push(`/${type}/login`);
+    window.location.href = `/${type}/login`;
   };
 
   const clientNavItems = [
