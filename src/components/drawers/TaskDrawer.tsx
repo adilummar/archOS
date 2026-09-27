@@ -179,6 +179,7 @@ function ReassignControl({
 export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const tasks = useTaskStore((s) => s.tasks);
   const task = tasks.find((t) => t.id === taskId);
+  const updateTaskLocal = useTaskStore((s) => s.updateTask);
             
   const authUser = useAuthStore((s) => s.user);
   const firmId = authUser?.firmId || "";
@@ -223,6 +224,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
   const handleTitleBlur = () => {
     if (titleEdit.trim() !== "" && titleEdit !== task.title) {
+      updateTaskLocal(task.id, { title: titleEdit });
       updateTaskMut.mutateAsync({ taskId: task.id, data: { title: titleEdit } });
     } else {
       setTitleEdit(task.title);
@@ -231,22 +233,30 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
   const handleDescBlur = () => {
     if (descEdit !== (task.description || "")) {
+      updateTaskLocal(task.id, { description: descEdit });
       updateTaskMut.mutateAsync({ taskId: task.id, data: { description: descEdit } });
     }
   };
 
   const handleStatusChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value as any;
+    updateTaskLocal(task.id, { status: val });
     updateTaskMut.mutateAsync({ taskId: task.id, data: { status: val } });
     toast("Status updated", "success");
   };
 
   const handlePriorityChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    updateTaskMut.mutateAsync({ taskId: task.id, data: { priority: e.target.value as any } });
+    const val = e.target.value as any;
+    updateTaskLocal(task.id, { priority: val });
+    updateTaskMut.mutateAsync({ taskId: task.id, data: { priority: val } });
   };
 
   const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
-    updateTaskMut.mutateAsync({ taskId: task.id, data: { dueDate: e.target.value } });
+    const val = e.target.value;
+    updateTaskLocal(task.id, { dueDate: val });
+    updateTaskMut.mutateAsync({ taskId: task.id, data: { dueDate: val } }).then(() => {
+      toast("Due date updated", "success");
+    });
   };
 
   const handleAddSubtask = () => {
