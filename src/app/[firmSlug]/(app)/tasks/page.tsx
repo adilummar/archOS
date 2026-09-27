@@ -286,12 +286,29 @@ export default function TasksPage() {
 
     
 
-    const checkImplicit = (t: Task) => {
-      if (t.assigneeId === user.id) return true;
-      return false;
-    };
-    if (user.role === "staff") result = result.filter(checkImplicit);
-    else if (showMyTasksOnly) result = result.filter(checkImplicit);
+    // ── Role-based task visibility ────────────────────────────────────────────
+    // Team Lead: only see tasks that need THEIR action right now.
+    //   - "active"               → unassigned, ready to be assigned to staff
+    //   - "submitted_for_review" → staff finished, waiting for TL review/approval
+    // Everything else (future, assigned, in_progress, revision_requested) is
+    // handled by staff or is not yet actionable — hidden from the TL list.
+    if (user.role === "team_lead") {
+      result = result.filter(t =>
+        t.status === "active" || t.status === "submitted_for_review"
+      );
+    }
+    // Staff: only see tasks that are their personal responsibility right now.
+    else if (user.role === "staff") {
+      result = result.filter(t =>
+        t.assigneeId === user.id &&
+        ["assigned", "in_progress", "revision_requested"].includes(t.status)
+      );
+    }
+    // Admin: see everything — no additional filter
+    // My tasks only toggle (admin / accounts)
+    else if (showMyTasksOnly) {
+      result = result.filter(t => t.assigneeId === user.id);
+    }
 
     
     if (quickFilter === "overdue") {
