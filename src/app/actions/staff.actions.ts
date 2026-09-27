@@ -38,6 +38,7 @@ export async function addStaffMember(data: {
   role: string;
   designation?: string;
   phone?: string;
+  costRatePerHour?: number;
 }) {
   const ctx = await getCtx();
   // Verify caller is admin
@@ -58,6 +59,7 @@ export async function addStaffMember(data: {
       role: data.role,
       designation: data.designation || null,
       phone: data.phone || null,
+      costRatePerHour: data.costRatePerHour || 0,
       status: "active",
       avatarInitials: data.name.slice(0, 2).toUpperCase(),
       avatarColor: "#E85D04",
