@@ -1,7 +1,7 @@
 export type Role = 'admin' | 'team_lead' | 'staff' | 'accounts'
 export type PortalRole = 'client' | 'contractor'
 export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'cancelled'
-export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'approved' | 'done' | 'blocked'
+export type TaskStatus = 'future' | 'active' | 'assigned' | 'in_progress' | 'submitted_for_review' | 'revision_requested' | 'completed' | 'blocked' | 'todo' | 'done' | 'review' | 'approved'
 export type Priority = 'low' | 'normal' | 'high'
 export type ApprovalStatus = 'pending' | 'approved' | 'revision_requested' | 'rejected'
 export type FileStatus = 'informational' | 'final' | 'contractor_view' | 'superseded'

@@ -360,7 +360,8 @@ export async function instantiateProjectFromTemplate(ctx: AuthContext, data: {
               status: index === 0 ? "in_progress" : "pending"
             }
           });
-          for (const tTask of tStage.tasks) {
+          for (const [tIndex, tTask] of tStage.tasks.entries()) {
+            const isFirstTask = index === 0 && tIndex === 0;
             await tx.task.create({
               data: {
                 firmId: project.firmId,
@@ -369,8 +370,11 @@ export async function instantiateProjectFromTemplate(ctx: AuthContext, data: {
                 title: tTask.title,
                 description: tTask.description,
                 priority: tTask.priority,
-                assigneeId: rest.teamLeadId || staffIds[0],
-                assignerId: rest.teamLeadId || staffIds[0]
+                order: tTask.order,
+                status: isFirstTask ? "active" : "future",
+                // Assignee and assigner start as null until Team Lead sets due date
+                assigneeId: null,
+                assignerId: null
               }
             });
           }
@@ -455,7 +459,8 @@ export async function updateProjectTemplate(ctx: AuthContext, firmId: string, pr
               status: index === 0 ? "in_progress" : "pending"
             }
           });
-          for (const tTask of tStage.tasks) {
+          for (const [tIndex, tTask] of tStage.tasks.entries()) {
+            const isFirstTask = index === 0 && tIndex === 0;
             await tx.task.create({
               data: {
                 firmId: ctx.firmId,
@@ -464,8 +469,11 @@ export async function updateProjectTemplate(ctx: AuthContext, firmId: string, pr
                 title: tTask.title,
                 description: tTask.description,
                 priority: tTask.priority,
-                assigneeId: project.teamLeadId || actorId || "",
-                assignerId: actorId || project.teamLeadId || ""
+                order: tTask.order,
+                status: isFirstTask ? "active" : "future",
+                // Assignee and assigner start as null until Team Lead sets due date
+                assigneeId: null,
+                assignerId: null
               }
             });
           }
