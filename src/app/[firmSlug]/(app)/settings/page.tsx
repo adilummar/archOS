@@ -206,6 +206,7 @@ function Input({
   type = "text",
   placeholder = "",
   name,
+  onBlur,
 }: {
   value: string | number;
   onChange: (v: string) => void;
@@ -213,6 +214,7 @@ function Input({
   type?: string;
   placeholder?: string;
   name?: string;
+  onBlur?: () => void;
 }) {
   return (
     <input
@@ -297,7 +299,7 @@ function PrimaryButton({
   title,
 }: {
   onClick: () => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   icon?: React.ReactNode;
   variant?: "primary" | "ghost" | "danger" | "muted";
   disabled?: boolean;
@@ -361,7 +363,7 @@ function PrimaryButton({
       }}
     >
       {icon}
-      {children}
+      {!iconOnly && children}
     </button>
   );
 }
@@ -549,8 +551,7 @@ function FirmProfileSection() {
                 onClick={() => setEditing(true)}
                 icon={<Edit2 size={13} strokeWidth={2} />}
                 variant="ghost"
-                  iconOnly title="Edit Staff">Edit
-                </PrimaryButton>
+                  iconOnly title="Edit Staff"></PrimaryButton>
             ) : (
               <div style={{ display: "flex", gap: 8 }}>
                 <PrimaryButton
@@ -757,7 +758,10 @@ function StaffRow({
       {/* Role dropdown */}
       <Select
         value={row.role}
-        onChange={(v) => setRow((p) => ({ ...p, role: v as Role }))}
+        onChange={(v) => {
+          setRow((p) => ({ ...p, role: v as Role }));
+          onSave(user.id, { role: v as Role, costRatePerHour: parseFloat(row.costRatePerHour) || 0 });
+        }}
         options={roleOptions}
         disabled={isDiscontinued}
       />
@@ -767,6 +771,7 @@ function StaffRow({
         type="number"
         value={row.costRatePerHour}
         onChange={(v) => setRow((p) => ({ ...p, costRatePerHour: v }))}
+        onBlur={() => onSave(user.id, { role: row.role, costRatePerHour: parseFloat(row.costRatePerHour) || 0 })}
         disabled={isDiscontinued}
         placeholder="₹/hr"
       />
@@ -778,8 +783,7 @@ function StaffRow({
             onClick={() => onReactivate(user.id)}
             icon={<RotateCcw size={12} strokeWidth={2} />}
             variant="muted"
-              iconOnly title="Reactivate Staff">Reactivate
-            </PrimaryButton>
+              iconOnly title="Reactivate Staff"></PrimaryButton>
         ) : (
           <>
             <PrimaryButton
@@ -789,30 +793,26 @@ function StaffRow({
               })}
               icon={<Save size={12} strokeWidth={2} />}
               variant="ghost"
-                iconOnly title="Save">Save
-              </PrimaryButton>
+                iconOnly title="Save"></PrimaryButton>
             {onChangePassword && (
               <PrimaryButton
                 onClick={() => onChangePassword(user.id, user.name)}
                 icon={<Key size={12} strokeWidth={2} />}
                 variant="ghost"
-                  iconOnly title="Change Password">Pass
-                </PrimaryButton>
+                  iconOnly title="Change Password"></PrimaryButton>
             )}
             {onEdit && (
               <PrimaryButton
                 onClick={() => onEdit(user)}
                 icon={<Edit2 size={12} strokeWidth={2} />}
                 variant="ghost"
-                  iconOnly title="Edit Staff">Edit
-                </PrimaryButton>
+                  iconOnly title="Edit Staff"></PrimaryButton>
             )}
             <PrimaryButton
               onClick={() => onDiscontinue(user.id)}
               icon={<Ban size={12} strokeWidth={2} />}
               variant="danger"
-              iconOnly title="Discontinue Staff">Discontinue
-            </PrimaryButton>
+              iconOnly title="Discontinue Staff"></PrimaryButton>
           </>
         )}
       </div>
