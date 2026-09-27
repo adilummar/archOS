@@ -149,10 +149,12 @@ export function DBProvider({ firmSlug }: DBProviderProps) {
               zustandFirm
             );
           } else {
-            window.location.href = '/' + firmSlug + '/login';
+            // No user in session — middleware handles redirect on next navigation.
+            console.warn("[DBProvider] /api/auth/me returned no user.");
           }
         } else {
-          window.location.href = '/' + firmSlug + '/login';
+          // Fetch failed — middleware handles redirect on next navigation.
+          console.warn("[DBProvider] /api/auth/me failed:", authRes.status);
         }
 
         // ── Hydrate project store ────────────────────────────────────────
