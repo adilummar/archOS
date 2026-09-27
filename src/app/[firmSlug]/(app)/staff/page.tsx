@@ -304,10 +304,6 @@ export default function StaffPage() {
           )}
         </div>
       )}
-    </div>
-  );
-}
-
 
       {/* ── ADD STAFF MODAL ── */}
       {showAddModal && (
