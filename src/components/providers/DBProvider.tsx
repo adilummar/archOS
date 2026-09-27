@@ -148,7 +148,11 @@ export function DBProvider({ firmSlug }: DBProviderProps) {
               },
               zustandFirm
             );
+          } else {
+            window.location.href = '/' + firmSlug + '/login';
           }
+        } else {
+          window.location.href = '/' + firmSlug + '/login';
         }
 
         // ── Hydrate project store ────────────────────────────────────────

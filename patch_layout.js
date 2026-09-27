@@ -1,18 +1,9 @@
 const fs = require('fs');
-let c = fs.readFileSync('src/app/[firmSlug]/(app)/layout.tsx', 'utf8');
+const filePath = 'src/app/[firmSlug]/(app)/layout.tsx';
+let content = fs.readFileSync(filePath, 'utf8');
 
-const target = `// If no auth in Zustand (e.g. after tab restore), redirect to login.`;
-const replacement = `// Intercept uncompleted onboarding
-  useEffect(() => {
-    if (firm && firm.onboardingState !== "COMPLETED") {
-      if (!pathname.includes("/onboarding")) {
-        router.replace(\`/\${params.firmSlug}/onboarding\`);
-      }
-    }
-  }, [firm, pathname, params.firmSlug, router]);
+const regex = /\/\/ If no auth in Zustand[\s\S]*?\}, \[user, firm, params\.firmSlug, router\]\);/m;
+content = content.replace(regex, '// Client-side redirect removed to prevent race conditions on hard reload.');
 
-  // If no auth in Zustand (e.g. after tab restore), redirect to login.`;
-
-c = c.replace(target, replacement);
-fs.writeFileSync('src/app/[firmSlug]/(app)/layout.tsx', c);
-console.log("Patched layout");
+fs.writeFileSync(filePath, content, 'utf8');
+console.log("Patched layout.tsx");

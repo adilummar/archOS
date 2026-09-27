@@ -80,13 +80,7 @@ export default function FirmAppLayout({ children }: { children: React.ReactNode 
     }
   }, [firm, pathname, params.firmSlug, router]);
 
-  // If no auth in Zustand (e.g. after tab restore), redirect to login.
-  // Primary protection is in middleware.ts — this is a UI fallback only.
-  useEffect(() => {
-    if (!user || !firm) {
-      router.replace(`/${params.firmSlug}/login`);
-    }
-  }, [user, firm, params.firmSlug, router]);
+  // Client-side redirect removed to prevent race conditions on hard reload.
 
   if (!user || !firm) {
     return (
