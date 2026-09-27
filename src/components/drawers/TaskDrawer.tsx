@@ -197,6 +197,10 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const [descEdit, setDescEdit] = useState(task?.description || "");
   const [newSubtask, setNewSubtask] = useState("");
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  const [pendingDate, setPendingDate] = useState<string | null>(null);
+  const [pendingPriority, setPendingPriority] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const hasPendingChanges = pendingDate !== null || pendingPriority !== null || titleEdit !== (task?.title || '') || descEdit !== (task?.description || '');
 
   useEffect(() => {
     if (task) {
@@ -223,19 +227,13 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   );
 
   const handleTitleBlur = () => {
-    if (titleEdit.trim() !== "" && titleEdit !== task.title) {
-      updateTaskLocal(task.id, { title: titleEdit });
-      updateTaskMut.mutateAsync({ taskId: task.id, data: { title: titleEdit } });
-    } else {
+    if (titleEdit.trim() === "") {
       setTitleEdit(task.title);
     }
   };
 
   const handleDescBlur = () => {
-    if (descEdit !== (task.description || "")) {
-      updateTaskLocal(task.id, { description: descEdit });
-      updateTaskMut.mutateAsync({ taskId: task.id, data: { description: descEdit } });
-    }
+    // description saved via Apply button
   };
 
   const handleStatusChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -246,17 +244,32 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   };
 
   const handlePriorityChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value as any;
-    updateTaskLocal(task.id, { priority: val });
-    updateTaskMut.mutateAsync({ taskId: task.id, data: { priority: val } });
+    setPendingPriority(e.target.value);
   };
 
   const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    updateTaskLocal(task.id, { dueDate: val });
-    updateTaskMut.mutateAsync({ taskId: task.id, data: { dueDate: val } }).then(() => {
-      toast("Due date updated", "success");
-    });
+    setPendingDate(e.target.value);
+  };
+
+  const handleApply = async () => {
+    const patch: Record<string, any> = {};
+    if (titleEdit.trim() !== "" && titleEdit !== task.title) patch.title = titleEdit;
+    if (descEdit !== (task.description || "")) patch.description = descEdit;
+    if (pendingDate !== null) patch.dueDate = pendingDate;
+    if (pendingPriority !== null) patch.priority = pendingPriority;
+    if (Object.keys(patch).length === 0) return;
+    setIsSaving(true);
+    try {
+      updateTaskLocal(task.id, patch as any);
+      await updateTaskMut.mutateAsync({ taskId: task.id, data: patch });
+      setPendingDate(null);
+      setPendingPriority(null);
+      toast("Changes saved", "success");
+    } catch {
+      toast("Failed to save changes", "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAddSubtask = () => {
@@ -418,7 +431,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <Calendar size={14} color="var(--color-text-muted)" strokeWidth={1.5} />
                 <input
                   type="date"
-                  value={task.dueDate ? task.dueDate.split('T')[0] : ''}
+                  value={pendingDate !== null ? pendingDate : (task.dueDate ? task.dueDate.split('T')[0] : '')}
                   onChange={handleDateChange}
                   disabled={readonly}
                   style={{
@@ -437,7 +450,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 Priority
               </span>
               <select
-                value={task.priority}
+                value={pendingPriority !== null ? pendingPriority : task.priority}
                 onChange={handlePriorityChange}
                 disabled={readonly || !isAdminOrLead}
                 style={{
@@ -458,6 +471,33 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
             </div>
           </div>
         </div>
+
+        {/* Apply Changes Button */}
+        {!readonly && hasPendingChanges && (
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              onClick={handleApply}
+              disabled={isSaving}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 18px",
+                background: "var(--color-accent)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: isSaving ? "not-allowed" : "pointer",
+                opacity: isSaving ? 0.7 : 1,
+                transition: "opacity 0.2s",
+              }}
+            >
+              {isSaving ? "Saving..." : "Apply Changes"}
+            </button>
+          </div>
+        )}
 
         <div style={{ borderTop: "1px solid var(--color-border)" }} />
 
