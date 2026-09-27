@@ -171,7 +171,7 @@ export function NewProjectDrawer({ open, onClose }: Props) {
       });
 
       // Update Zustand store locally to avoid hard reload
-      
+      addProject(project);
 
       toast(`Project "${name}" created from Template!`, "success");
       reset();
