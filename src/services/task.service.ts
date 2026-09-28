@@ -79,7 +79,12 @@ export async function createTask(ctx: AuthContext, data: any) {
 
 export async function updateTask(ctx: AuthContext, taskId: string, data: any, firmId: string, actorId: string) {
   return withAuthTx(ctx, async (tx) => {
-    const task = await tx.task.update({ where: { id: taskId }, data });
+    // Convert date-only strings (YYYY-MM-DD) to full ISO DateTime for Prisma
+    const updateData = { ...data };
+    if (updateData.dueDate && typeof updateData.dueDate === "string" && updateData.dueDate.length === 10) {
+      updateData.dueDate = new Date(updateData.dueDate + "T00:00:00.000Z");
+    }
+    const task = await tx.task.update({ where: { id: taskId }, data: updateData });
     await tx.activityLog.create({
       data: {
         firmId,
