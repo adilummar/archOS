@@ -2,6 +2,14 @@ import { AuthContext } from "./auth.service";
 import { prisma } from "@/lib/db";
 import { withAuthTx } from "@/lib/db-tx";
 
+/** Convert "YYYY-MM-DD" strings to a full Date object. Passes through Date objects unchanged. */
+function toDateTime(val: any): Date | undefined {
+  if (!val) return undefined;
+  if (val instanceof Date) return val;
+  if (typeof val === "string" && val.length === 10) return new Date(val + "T00:00:00.000Z");
+  return new Date(val);
+}
+
 export async function getTasksByProject(ctx: AuthContext, projectId: string) {
   return withAuthTx(ctx, async (tx) => {
     return tx.task.findMany({
@@ -148,7 +156,7 @@ export async function reviewTask(ctx: AuthContext, taskId: string, reviewerId: s
         approvalNote: data.approvalNote,
         approvedById: reviewerId,
         status: data.approvalStatus === "approved" ? "approved" : "in_progress",
-        dueDate: data.newDueDate || existing.dueDate
+        dueDate: toDateTime(data.newDueDate) || existing.dueDate
       }
     });
 
@@ -189,7 +197,7 @@ export async function assignTaskWithOverride(ctx: AuthContext, data: any) {
 
     const updatedTask = await tx.task.update({
       where: { id: data.taskId },
-      data: { assigneeId: data.assigneeId, dueDate: data.requestedDueDate }
+      data: { assigneeId: data.assigneeId, dueDate: toDateTime(data.requestedDueDate) }
     });
 
     await tx.activityLog.create({
@@ -393,7 +401,7 @@ export async function requestTaskRevisionSequence(ctx: AuthContext, taskId: stri
       where: { id: taskId },
       data: {
         status: 'revision_requested',
-        dueDate: newDueDate,
+        dueDate: toDateTime(newDueDate),
         approvalStatus: 'revision_requested',
         approvalNote: remark,
         approvedById: ctx.userId
