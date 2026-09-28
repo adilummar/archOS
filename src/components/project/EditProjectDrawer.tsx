@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 /**
  * EditProjectDrawer — slide-in form for editing an existing project.
  * Allows admin / team_lead to update name, client, location, dates,
@@ -12,6 +12,7 @@ import { nowIso } from "../../lib/store/uid";
 import { useAuthStore } from "../../lib/store/auth.store";
 import { useFirmStore } from "../../lib/store/firm.store";
 import { useProjectStore } from "../../lib/store/project.store";
+import { useUpdateProject } from "../../hooks/useProjects";
 import { Avatar } from "../shared/Avatar";
 import { X, Plus } from "lucide-react";
 import type { Project } from "../../lib/store/types";
@@ -39,6 +40,7 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
   const { user, firm } = useAuthStore();
   const { users, clients, contractors } = useFirmStore();
   const { updateProject } = useProjectStore();
+  const updateProjectMutation = useUpdateProject(firm?.id || "");
 
   const firmClients = useMemo(
     () => clients.filter((c) => c.firmId === firm?.id),
@@ -95,7 +97,7 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!firm || !user || !project) return;
     if (!name.trim()) return setError("Project name is required.");
     if (!clientId) return setError("Select a client.");
@@ -103,7 +105,7 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
 
     const selectedClient = firmClients.find((c) => c.id === clientId);
 
-    updateProject(project.id, {
+    const patch = {
       name: name.trim(),
       clientId,
       clientName: selectedClient?.name ?? project.clientName,
@@ -119,10 +121,18 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
       contractorIds,
       description: description || undefined,
       updatedAt: nowIso(),
-    });
+    };
 
-    toast(`Project "${name.trim()}" updated`, "success");
-    onClose();
+    try {
+      // Persist to database via API
+      await updateProjectMutation.mutateAsync({ projectId: project.id, data: patch });
+      // Also update local Zustand store for optimistic UI
+      updateProject(project.id, patch);
+      toast(`Project "${name.trim()}" updated`, "success");
+      onClose();
+    } catch {
+      setError("Failed to save changes. Please try again.");
+    }
   };
 
   if (!project) return null;
@@ -422,8 +432,8 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
           <button type="button" onClick={onClose} style={ghostBtnStyle}>
             Cancel
           </button>
-          <button type="button" onClick={handleSubmit} style={primaryBtnStyle}>
-            Save Changes
+          <button type="button" onClick={handleSubmit} style={primaryBtnStyle} disabled={updateProjectMutation.isPending}>
+            {updateProjectMutation.isPending ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>

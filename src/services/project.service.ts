@@ -187,7 +187,14 @@ export async function updateProject(ctx: AuthContext, projectId: string, data: P
           where: {
             id: projectId
           },
-          data
+          data: (() => {
+            const { staffIds, contractorIds, updatedAt, ...rest } = data;
+            const updateData = { ...rest };
+            if (Array.isArray(staffIds)) {
+              updateData.staffMembers = { deleteMany: {}, create: staffIds.map(userId => ({ userId })) };
+            }
+            return updateData;
+          })()
         });
         return project;
       });
