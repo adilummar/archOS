@@ -190,6 +190,16 @@ export async function updateProject(ctx: AuthContext, projectId: string, data: P
           data: (() => {
             const { staffIds, contractorIds, updatedAt, ...rest } = data;
             const updateData = { ...rest };
+            // Convert date-only strings (YYYY-MM-DD) to full ISO DateTime for Prisma
+            if (updateData.startDate && typeof updateData.startDate === 'string' && updateData.startDate.length === 10) {
+              updateData.startDate = new Date(updateData.startDate + 'T00:00:00.000Z');
+            }
+            if (updateData.expectedEndDate && typeof updateData.expectedEndDate === 'string' && updateData.expectedEndDate.length === 10) {
+              updateData.expectedEndDate = new Date(updateData.expectedEndDate + 'T00:00:00.000Z');
+            }
+            if (updateData.actualEndDate && typeof updateData.actualEndDate === 'string' && updateData.actualEndDate.length === 10) {
+              updateData.actualEndDate = new Date(updateData.actualEndDate + 'T00:00:00.000Z');
+            }
             if (Array.isArray(staffIds)) {
               updateData.staffMembers = { deleteMany: {}, create: staffIds.map(userId => ({ userId })) };
             }
