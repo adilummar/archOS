@@ -200,8 +200,9 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [pendingDate, setPendingDate] = useState<string | null>(null);
   const [pendingPriority, setPendingPriority] = useState<string | null>(null);
+  const [pendingAssigneeId, setPendingAssigneeId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const hasPendingChanges = pendingDate !== null || pendingPriority !== null || titleEdit !== (task?.title || '') || descEdit !== (task?.description || '');
+  const hasPendingChanges = pendingDate !== null || pendingPriority !== null || pendingAssigneeId !== null || titleEdit !== (task?.title || '') || descEdit !== (task?.description || '');
 
   useEffect(() => {
     if (task) {
@@ -334,6 +335,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
     if (descEdit !== (task.description || "")) patch.description = descEdit;
     if (pendingDate !== null) patch.dueDate = pendingDate;
     if (pendingPriority !== null) patch.priority = pendingPriority;
+    if (pendingAssigneeId !== null) patch.assigneeId = pendingAssigneeId;
     if (Object.keys(patch).length === 0) return;
     setIsSaving(true);
     try {
@@ -341,6 +343,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
       await updateTaskMut.mutateAsync({ taskId: task.id, data: patch });
       setPendingDate(null);
       setPendingPriority(null);
+      setPendingAssigneeId(null);
       toast("Changes saved", "success");
     } catch {
       toast("Failed to save changes", "error");
@@ -375,9 +378,8 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   };
 
   const handleReassign = (assigneeId: string) => {
-    updateTaskMut.mutateAsync({ taskId: task.id, data: { assigneeId } });
-    const name = users.find((u) => u.id === assigneeId)?.name ?? "staff";
-    toast(`Task reassigned to ${name}`, "success");
+    // Store as pending — saved when Apply Changes is clicked
+    setPendingAssigneeId(assigneeId);
   };
 
   const statusOptions = [
@@ -475,7 +477,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Assignee with Reassign */}
           <ReassignControl
-            currentAssigneeId={task.assigneeId}
+            currentAssigneeId={pendingAssigneeId ?? task.assigneeId}
             teamMembers={teamMembers}
             onReassign={handleReassign}
             disabled={readonly || !isAdminOrLead}
