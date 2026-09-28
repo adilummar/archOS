@@ -58,6 +58,8 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
   const [location, setLocation] = useState("");
   const [startDate, setStartDate] = useState("");
   const [expectedEndDate, setExpectedEndDate] = useState("");
+  const [startDateChanged, setStartDateChanged] = useState(false);
+  const [endDateChanged, setEndDateChanged] = useState(false);
   const [projectValue, setProjectValue] = useState("");
   const [feeAgreed, setFeeAgreed] = useState("");
   const [teamLeadId, setTeamLeadId] = useState("");
@@ -75,6 +77,8 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
       setLocation(project.location ?? "");
       setStartDate(project.startDate?.slice(0, 10) ?? "");
       setExpectedEndDate(project.expectedEndDate?.slice(0, 10) ?? "");
+      setStartDateChanged(false);
+      setEndDateChanged(false);
       setProjectValue(project.projectValue != null ? String(project.projectValue) : "");
       setFeeAgreed(project.feeAgreed != null ? String(project.feeAgreed) : "");
       setTeamLeadId(project.teamLeadId ?? "");
@@ -105,15 +109,14 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
 
     const selectedClient = firmClients.find((c) => c.id === clientId);
 
-    const patch = {
+    // Only include dates that the user explicitly changed — never auto-override
+    const patch: any = {
       name: name.trim(),
       clientId,
       clientName: selectedClient?.name ?? project.clientName,
       status,
       feeStructure,
       location,
-      startDate: startDate || project.startDate,
-      expectedEndDate: expectedEndDate || project.expectedEndDate,
       projectValue: projectValue ? Number(projectValue) : undefined,
       feeAgreed: feeAgreed ? Number(feeAgreed) : 0,
       teamLeadId,
@@ -122,6 +125,9 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
       description: description || undefined,
       updatedAt: nowIso(),
     };
+
+    if (startDateChanged && startDate) patch.startDate = startDate;
+    if (endDateChanged && expectedEndDate) patch.expectedEndDate = expectedEndDate;
 
     try {
       // Persist to database via API
@@ -202,7 +208,7 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => { setStartDate(e.target.value); setStartDateChanged(true); }}
               style={inputStyle}
             />
           </Field>
@@ -210,7 +216,7 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
             <input
               type="date"
               value={expectedEndDate}
-              onChange={(e) => setExpectedEndDate(e.target.value)}
+              onChange={(e) => { setExpectedEndDate(e.target.value); setEndDateChanged(true); }}
               style={inputStyle}
             />
           </Field>
