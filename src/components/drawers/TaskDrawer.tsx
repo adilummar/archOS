@@ -13,6 +13,7 @@ import { toast } from "../../lib/store/toast.store";
 import * as TaskActions from "@/app/actions/task.actions";
 import { useActivityStore } from "../../lib/store/activity.store";
 import { useRequestStore } from "../../lib/store/request.store";
+import { format } from "date-fns";
 import {
   Plus, X, Calendar, User as UserIcon, Tag, Check,
   AlertTriangle, ChevronDown, UserCheck,
@@ -478,6 +479,17 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
           </div>
         </div>
 
+        {task.startDate && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: -8 }}>
+            <span style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-muted)" }}>
+              Started
+            </span>
+            <div style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-primary)" }}>
+              {format(new Date(task.startDate), "dd MMM yyyy, p")}
+            </div>
+          </div>
+        )}
+
         {/* Meta Row — Assignee + Due Date + Priority */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Assignee with Reassign */}
@@ -746,9 +758,10 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <button
                   onClick={async () => {
                     try {
-                      await TaskActions.startTask(task.id);
+                      const updated = await TaskActions.startTask(task.id);
+                      updateTaskLocal(task.id, { status: updated.status, startDate: updated.startDate });
                       toast("Task started", "success");
-                      onClose();
+                      // Do NOT close drawer so they can see "In Progress" and "Give for Review"
                     } catch (e: any) {
                       toast(e.message || "Failed to start task", "error");
                     }
@@ -762,9 +775,10 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <button
                   onClick={async () => {
                     try {
-                      await TaskActions.submitTaskForReview(task.id);
+                      const updated = await TaskActions.submitTaskForReview(task.id);
+                      updateTaskLocal(task.id, { status: updated.status });
                       toast("Task submitted for review", "success");
-                      onClose();
+                      // Do NOT close drawer so they see it's submitted
                     } catch (e: any) {
                       toast(e.message || "Failed to submit task", "error");
                     }
