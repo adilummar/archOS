@@ -959,7 +959,7 @@ function InvoicesTab() {
               const isOverdue =
                 inv.status === "sent" &&
                 inv.dueDate &&
-                isPast(parseISO(inv.dueDate));
+                (inv.dueDate ? isPast(parseISO(inv.dueDate)) : false);
               const isOpen = payingId === inv.id;
 
               return (

@@ -68,7 +68,7 @@ function TaskRow({
     task.status !== "approved";
 
   const daysOverdue = isOverdue
-    ? Math.abs(differenceInDays(parseISO(task.dueDate), new Date()))
+    ? Math.abs((task.dueDate ? (task.dueDate ? (task.dueDate ? (task.dueDate ? (task.dueDate ? differenceInDays(parseISO(task.dueDate), new Date()) : 0) : 0) : 0) : 0) : 0))
     : 0;
 
   return (
@@ -140,7 +140,7 @@ function TaskRow({
         {isOverdue
           ? `${daysOverdue}d overdue`
           : task.dueDate
-          ? format(parseISO(task.dueDate), "d MMM")
+          ? task.dueDate ? (task.dueDate ? (task.dueDate ? format(parseISO(task.dueDate), "d MMM") : "") : "") : ""
           : "—"}
       </span>
 
@@ -291,7 +291,7 @@ function SortableTaskCard({
               color: isOverdue ? "var(--color-destructive)" : "var(--color-text-muted)",
             }}
           >
-            {format(parseISO(task.dueDate), "d MMM")}
+            {task.dueDate ? (task.dueDate ? (task.dueDate ? format(parseISO(task.dueDate), "d MMM") : "") : "") : ""}
           </span>
         )}
       </div>
@@ -671,6 +671,14 @@ function Select({
     </select>
   );
 }
+
+
+
+
+
+
+
+
 
 
 

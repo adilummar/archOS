@@ -144,7 +144,7 @@ export default function StaffTasksView({
               {filteredTasks.map((task) => {
                 const project = projects.find((p) => p.id === task.projectId);
                 const stage = project?.stages.find((s) => s.id === task.stageId);
-                const overdue = task.dueDate && isPast(parseISO(task.dueDate)) && !["completed", "done", "approved"].includes(task.status);
+                const overdue = task.dueDate && (task.dueDate ? (task.dueDate ? (task.dueDate ? isPast(parseISO(task.dueDate)) : false) : false) : false) && !["completed", "done", "approved"].includes(task.status);
                 
                 return (
                   <tr
@@ -172,7 +172,7 @@ export default function StaffTasksView({
                     <td style={{ padding: "12px 16px" }}>
                       {task.dueDate ? (
                         <span style={{ color: overdue ? "var(--color-destructive)" : "var(--color-text-primary)", fontWeight: overdue ? 500 : 400 }}>
-                          {format(parseISO(task.dueDate), "dd MMM yyyy")}
+                          {task.dueDate ? (task.dueDate ? (task.dueDate ? format(parseISO(task.dueDate), "dd MMM yyyy") : "") : "") : ""}
                         </span>
                       ) : (
                         <span style={{ color: "var(--color-text-muted)" }}>No date</span>
@@ -207,4 +207,10 @@ export default function StaffTasksView({
     </div>
   );
 }
+
+
+
+
+
+
 

@@ -340,7 +340,7 @@ export function OverviewTab({ project }: Props) {
               <MetaRow
                 icon={<Calendar size={12} strokeWidth={1.5} />}
                 label="Expected End"
-                value={format(parseISO(project.expectedEndDate), "d MMM yyyy")}
+                value={project.expectedEndDate ? (project.expectedEndDate ? format(parseISO(project.expectedEndDate), "d MMM yyyy") : "") : ""}
               />
             )}
             {project.actualEndDate && (
@@ -431,3 +431,11 @@ function MetaRow({
     </div>
   );
 }
+
+
+
+
+
+
+
+

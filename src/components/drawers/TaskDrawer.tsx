@@ -43,7 +43,7 @@ function ReassignControl({
   onReassign,
   disabled,
 }: {
-  currentAssigneeId: string;
+  currentAssigneeId?: string;
   teamMembers: { id: string; name: string; avatarColor: string; avatarInitials: string; designation: string }[];
   onReassign: (id: string) => void;
   disabled?: boolean;
@@ -853,6 +853,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
     </Drawer>
   );
 }
+
 
 
 

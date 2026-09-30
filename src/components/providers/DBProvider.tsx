@@ -193,9 +193,8 @@ export function DBProvider({ firmSlug }: DBProviderProps) {
           staffIds: p.staffMembers.map((sm) => sm.userId),
           teamLeadId: p.teamLeadId ?? undefined,
           location: p.location ?? "",
-          startDate: p.startDate?.toISOString() ?? new Date().toISOString(),
-          expectedEndDate:
-            p.expectedEndDate?.toISOString() ?? new Date().toISOString(),
+          startDate: p.startDate?.toISOString(),
+          expectedEndDate: p.expectedEndDate?.toISOString(),
           actualEndDate: p.actualEndDate?.toISOString(),
           projectValue: p.projectValue ?? undefined,
           feeAgreed: p.feeAgreed ?? 0,
@@ -224,11 +223,11 @@ export function DBProvider({ firmSlug }: DBProviderProps) {
           stageId: t.stageId ?? "",
           title: t.title,
           description: t.description ?? undefined,
-          assigneeId: t.assigneeId ?? "",
-          assignerId: t.assignerId ?? "",
+          assigneeId: t.assigneeId ?? undefined,
+          assignerId: t.assignerId ?? undefined,
           status: t.status as "todo" | "in_progress" | "review" | "approved" | "done" | "blocked",
           priority: t.priority as "low" | "normal" | "high",
-          dueDate: t.dueDate?.toISOString() ?? new Date().toISOString(),
+          dueDate: t.dueDate?.toISOString(),
           startDate: t.startDate?.toISOString(),
           completedAt: t.completedAt?.toISOString(),
           isBlocked: t.isBlocked,
@@ -270,6 +269,8 @@ export function DBProvider({ firmSlug }: DBProviderProps) {
 
   return null;
 }
+
+
 
 
 

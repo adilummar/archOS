@@ -65,7 +65,7 @@ export const useTaskStore = create<TaskState>()(
         firmId: task.firmId,
         projectId: task.projectId,
         userId: task.assignerId === "client" ? undefined : task.assignerId,
-        userName: task.assignerId === "client" ? "Client" : staffName(task.assignerId),
+        userName: task.assignerId === "client" ? "Client" : staffName(task.assignerId || ""),
         entity: "task",
         entityId: task.id,
         action: "created",
@@ -74,7 +74,7 @@ export const useTaskStore = create<TaskState>()(
       // Notify assignee
       useNotificationStore.getState().push({
         firmId: task.firmId,
-        userIds: [task.assigneeId],
+        userIds: task.assigneeId ? [task.assigneeId] : [],
         type: "task_assigned",
         title: "Task assigned",
         body: `"${task.title}" was assigned to you`,
@@ -94,7 +94,7 @@ export const useTaskStore = create<TaskState>()(
           firmId: existing.firmId,
           projectId: existing.projectId,
           userId: existing.assigneeId,
-          userName: staffName(existing.assigneeId),
+          userName: staffName(existing.assigneeId || ""),
           entity: "task",
           entityId: taskId,
           action: "updated",
@@ -119,7 +119,7 @@ export const useTaskStore = create<TaskState>()(
           firmId: existing.firmId,
           projectId: existing.projectId,
           userId: existing.assigneeId,
-          userName: staffName(existing.assigneeId),
+          userName: staffName(existing.assigneeId || ""),
           entity: "task",
           entityId: taskId,
           action: "status_changed",
@@ -248,7 +248,7 @@ export const useTaskStore = create<TaskState>()(
         });
         useNotificationStore.getState().push({
           firmId: existing.firmId,
-          userIds: [existing.assigneeId],
+          userIds: existing.assigneeId ? [existing.assigneeId] : [],
           type: status === "approved" ? "task_assigned" : "change_request_resolved",
           title: `Task ${status === "approved" ? "approved" : "sent for revision"}`,
           body: `"${existing.title}" was ${status === "approved" ? "approved" : "sent back with: " + (opts?.note ?? "")}`,
@@ -274,11 +274,11 @@ export const useTaskStore = create<TaskState>()(
           entity: "task",
           entityId: taskId,
           action: "reassigned",
-          description: `"${existing.title}" reassigned to ${staffName(assigneeId)}`,
+          description: `"${existing.title}" reassigned to ${staffName(assigneeId || "")}`,
         });
         useNotificationStore.getState().push({
           firmId: existing.firmId,
-          userIds: [assigneeId],
+          userIds: assigneeId ? [assigneeId] : [],
           type: "task_assigned",
           title: "Task reassigned",
           body: `"${existing.title}" was assigned to you`,
@@ -304,4 +304,9 @@ export const projectCompletion = (
   ).length;
   return Math.round((closed / projectTasks.length) * 100);
 };
+
+
+
+
+
 

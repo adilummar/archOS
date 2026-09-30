@@ -105,7 +105,7 @@ export const useVoStore = create<VoState>()(
         if (project) {
           const nextFee = project.feeAgreed + existing.feeImpactAmount;
           const nextEnd = new Date(
-            new Date(project.expectedEndDate).getTime() +
+            new Date(project.expectedEndDate || new Date()).getTime() +
               existing.timelineImpactDays * 86400000
           )
             .toISOString()
@@ -221,3 +221,4 @@ export const useVoStore = create<VoState>()(
     { name: "archos-vo" }
   )
 );;
+

@@ -171,7 +171,7 @@ function SortableKanbanCard({
             fontFamily: "var(--font-mono)",
             color: isOverdue ? "var(--color-destructive)" : "var(--color-text-muted)",
           }}>
-            {format(parseISO(task.dueDate), "d MMM")}
+            {(task.dueDate ? format(parseISO(task.dueDate), "d MMM") : "")}
           </span>
         )}
       </div>
@@ -345,10 +345,10 @@ export default function TasksPage() {
 
     // Sort: overdue first, then by due date
     return result.sort((a, b) => {
-      const aOverdue = isPast(parseISO(a.dueDate)) && a.status !== "done" && a.status !== "approved";
-      const bOverdue = isPast(parseISO(b.dueDate)) && b.status !== "done" && b.status !== "approved";
+      const aOverdue = (a.dueDate ? isPast(parseISO(a.dueDate)) : false) && a.status !== "done" && a.status !== "approved";
+      const bOverdue = (b.dueDate ? isPast(parseISO(b.dueDate)) : false) && b.status !== "done" && b.status !== "approved";
       if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
-      return a.dueDate.localeCompare(b.dueDate);
+      return (a.dueDate || "").localeCompare(b.dueDate || "");
     });
   }, [tasks, firm, user, statusFilter, priorityFilter, projectFilter, search, showMyTasksOnly, quickFilter]);
 
@@ -376,7 +376,7 @@ export default function TasksPage() {
   };
 
   const getProject = (projectId: string) => firmProjects.find((p) => p.id === projectId);
-  const getAssignee = (assigneeId: string) => users.find((u) => u.id === assigneeId);
+  const getAssignee = (assigneeId?: string) => users.find((u) => u.id === assigneeId);
 
   const selectStyle: React.CSSProperties = {
     background: "var(--color-bg-input)",
@@ -615,10 +615,10 @@ export default function TasksPage() {
                     const project = getProject(task.projectId);
                     const assignee = getAssignee(task.assigneeId);
                     const overdue =
-                      isPast(parseISO(task.dueDate)) &&
+                      (task.dueDate ? isPast(parseISO(task.dueDate)) : false) &&
                       task.status !== "done" &&
                       task.status !== "approved";
-                    const dueToday = isToday(parseISO(task.dueDate));
+                    const dueToday = (task.dueDate ? isToday(parseISO(task.dueDate)) : false);
 
                     return (
                       <tr
@@ -709,7 +709,7 @@ export default function TasksPage() {
                             color: overdue ? "var(--color-destructive)" : dueToday ? "var(--color-warning)" : "var(--color-text-muted)",
                             fontWeight: overdue || dueToday ? 600 : 400,
                           }}>
-                            {format(parseISO(task.dueDate), "d MMM yyyy")}
+                            {(task.dueDate ? format(parseISO(task.dueDate), "d MMM yyyy") : "")}
                             {overdue && " · Overdue"}
                             {dueToday && !overdue && " · Today"}
                           </span>
@@ -772,6 +772,8 @@ export default function TasksPage() {
     </>
   );
 }
+
+
 
 
 

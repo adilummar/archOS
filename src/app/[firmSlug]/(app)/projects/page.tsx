@@ -102,8 +102,12 @@ export default function ProjectsPage() {
         case "name":
           return a.name.localeCompare(b.name);
         case "deadline_asc":
+          if (!a.expectedEndDate) return 1;
+          if (!b.expectedEndDate) return -1;
           return new Date(a.expectedEndDate).getTime() - new Date(b.expectedEndDate).getTime();
         case "deadline_desc":
+          if (!a.expectedEndDate) return 1;
+          if (!b.expectedEndDate) return -1;
           return new Date(b.expectedEndDate).getTime() - new Date(a.expectedEndDate).getTime();
         case "value_asc":
           return (a.feeAgreed || 0) - (b.feeAgreed || 0);
@@ -323,8 +327,8 @@ export default function ProjectsPage() {
             const projectTasks = tasks.filter((t) => t.projectId === p.id);
             const closedTasks = projectTasks.filter((t) => t.status === "done" || t.status === "approved").length;
             const stage = p.stages.find((s) => s.id === p.currentStageId);
-            const daysLeft = differenceInDays(parseISO(p.expectedEndDate), new Date());
-            const isPast = daysLeft < 0;
+            const daysLeft = p.expectedEndDate ? (p.expectedEndDate ? differenceInDays(parseISO(p.expectedEndDate), new Date()) : 0) : null;
+            const isPast = daysLeft !== null && daysLeft < 0;
 
             return (
               <div
@@ -444,7 +448,7 @@ export default function ProjectsPage() {
                       {formatLakhs(p.feeAgreed)}
                     </span>
                     <span style={{ fontSize: "10px", color: isPast ? "var(--color-destructive)" : "var(--color-text-muted)", fontWeight: isPast ? 600 : 400 }}>
-                      {format(parseISO(p.expectedEndDate), "d MMM yyyy")}
+                      {(p.expectedEndDate ? format(parseISO(p.expectedEndDate), "d MMM yyyy") : "")}
                     </span>
                   </div>
                 </div>
@@ -474,8 +478,8 @@ export default function ProjectsPage() {
               {visibleProjects.map((p) => {
                 const progress = projectCompletion(tasks, p.id);
                 const stage = p.stages.find((s) => s.id === p.currentStageId);
-                const daysLeft = differenceInDays(parseISO(p.expectedEndDate), new Date());
-                const isPast = daysLeft < 0;
+                const daysLeft = p.expectedEndDate ? (p.expectedEndDate ? differenceInDays(parseISO(p.expectedEndDate), new Date()) : 0) : null;
+                const isPast = daysLeft !== null && daysLeft < 0;
 
                 return (
                   <tr
@@ -504,7 +508,7 @@ export default function ProjectsPage() {
                     </td>
                     <td style={{ padding: "16px" }}><AvatarGroup names={getUserNames(p.staffIds)} max={3} /></td>
                     <td style={{ padding: "16px", fontSize: "var(--text-sm)", color: isPast ? "var(--color-destructive)" : "var(--color-text-secondary)" }}>
-                      {format(parseISO(p.expectedEndDate), "d MMM yyyy")}
+                      {(p.expectedEndDate ? format(parseISO(p.expectedEndDate), "d MMM yyyy") : "")}
                     </td>
                     <td style={{ padding: "16px", fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--color-text-primary)", textAlign: "right" }}>
                       {formatLakhs(p.feeAgreed)}
@@ -598,3 +602,7 @@ export default function ProjectsPage() {
     </>
   );
 }
+
+
+
+

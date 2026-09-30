@@ -99,7 +99,7 @@ export interface Project {
   contractorIds: string[]; templateId?: string; status: ProjectStatus
   stages: ProjectStage[]; currentStageId: string
   staffIds: string[]; teamLeadId?: string; location: string
-  startDate: string; expectedEndDate: string; actualEndDate?: string
+  startDate?: string; expectedEndDate?: string; actualEndDate?: string
   projectValue?: number; feeAgreed: number
   feeStructure: 'lump_sum' | 'percentage' | 'per_stage'
   description?: string; fileRequestWindowDays: number
@@ -114,8 +114,8 @@ export interface Subtask {
 
 export interface Task {
   id: string; firmId: string; projectId: string; stageId: string
-  title: string; description?: string; assigneeId: string; assignerId: string
-  status: TaskStatus; priority: Priority; dueDate: string
+  title: string; description?: string; assigneeId?: string; assignerId?: string
+  status: TaskStatus; priority: Priority; dueDate?: string
   startDate?: string; completedAt?: string
   approvalStatus?: ApprovalStatus; approvalNote?: string; approvedById?: string
   pendingChangeRequestId?: string; pendingVOId?: string
@@ -300,4 +300,6 @@ export interface ActivityLog {
   projectId?: string; entity: string; entityId: string
   action: string; description: string; createdAt: string
 }
+
+
 

@@ -295,7 +295,7 @@ export default function ProjectDetailPage() {
 
   // Deadline urgency
   const daysToDeadline = project.expectedEndDate
-    ? differenceInDays(parseISO(project.expectedEndDate), new Date())
+    ? (project.expectedEndDate ? differenceInDays(parseISO(project.expectedEndDate), new Date()) : 0)
     : null;
 
   // On hold banner
@@ -492,7 +492,7 @@ export default function ProjectDetailPage() {
                         fontWeight: daysToDeadline !== null && daysToDeadline < 30 ? 500 : 400,
                       }}
                     >
-                      Due {format(parseISO(project.expectedEndDate), "d MMM yyyy")}
+                      Due {(project.expectedEndDate ? format(parseISO(project.expectedEndDate), "d MMM yyyy") : "")}
                       {daysToDeadline !== null &&
                         daysToDeadline < 0 &&
                         ` (${Math.abs(daysToDeadline)}d overdue)`}
