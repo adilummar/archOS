@@ -3,9 +3,9 @@ const prisma = new PrismaClient();
 async function main() {
   const tasks = await prisma.task.findMany({
     where: { title: "Site Analysis & Measurements" },
-    select: { id: true, title: true, status: true, assignee: { select: { firstName: true, lastName: true } } }
+    select: { id: true, title: true, status: true, assignee: { select: { name: true, email: true } } }
   });
   console.log("Tasks:");
-  console.log(tasks);
+  console.log(JSON.stringify(tasks, null, 2));
 }
 main();
