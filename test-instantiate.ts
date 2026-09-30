@@ -1,33 +1,36 @@
 import { PrismaClient } from '@prisma/client';
 import { instantiateProjectFromTemplate } from './src/services/project.service';
-import { AuthContext } from './src/lib/auth/context';
 
 const prisma = new PrismaClient();
 
 async function test() {
   try {
     const firm = await prisma.firm.findFirst();
+    if (!firm) return;
+    
     const template = await prisma.projectTemplate.findFirst({
       where: { name: "Residential Architecture — Full Project Workflow", firmId: firm.id }
     });
+    if (!template) return;
 
     const adminUser = await prisma.user.findFirst({
       where: { firmId: firm.id, role: "admin" }
     });
+    if (!adminUser) return;
 
     const ctx = {
       userId: adminUser.id,
       firmId: firm.id,
       role: "admin",
       db: prisma
-    };
+    } as any;
 
     const project = await instantiateProjectFromTemplate(ctx, {
       firmId: firm.id,
       templateId: template.id,
       name: "DUMMY TEST PROJECT " + Date.now(),
-      clientId: null,
-      teamLeadId: null,
+      clientId: undefined,
+      teamLeadId: undefined,
       staffIds: [],
     });
 
@@ -42,7 +45,7 @@ async function test() {
 
     console.log("Tasks:");
     tasks.forEach(t => {
-      console.log(`Stage: ${t.stage.name} - Task: ${t.title} - Status: ${t.status} - Due Date: ${t.dueDate} - Assignee: ${t.assigneeId}`);
+      console.log(`Stage: ${t.stage?.name} - Task: ${t.title} - Status: ${t.status} - Due Date: ${t.dueDate} - Assignee: ${t.assigneeId}`);
     });
 
     // Clean up
