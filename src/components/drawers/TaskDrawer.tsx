@@ -759,7 +759,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                   onClick={async () => {
                     try {
                       const updated = await TaskActions.startTask(task.id);
-                      updateTaskLocal(task.id, { status: updated.status, startDate: updated.startDate });
+                      updateTaskLocal(task.id, { status: updated.status as any, startDate: updated.startDate });
                       toast("Task started", "success");
                       // Do NOT close drawer so they can see "In Progress" and "Give for Review"
                     } catch (e: any) {
@@ -776,7 +776,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                   onClick={async () => {
                     try {
                       const updated = await TaskActions.submitTaskForReview(task.id);
-                      updateTaskLocal(task.id, { status: updated.status });
+                      updateTaskLocal(task.id, { status: updated.status as any });
                       toast("Task submitted for review", "success");
                       // Do NOT close drawer so they see it's submitted
                     } catch (e: any) {
