@@ -164,6 +164,14 @@ export async function submitTaskForReview(taskId: string) {
   return result;
 }
 
+export async function startTask(taskId: string) {
+  const ctx = await getCtx();
+  const result = await Service.startTask(ctx, taskId);
+  revalidatePath("/[firmSlug]/projects/[projectId]", "page");
+  revalidatePath("/[firmSlug]/tasks", "page");
+  return result;
+}
+
 export async function requestTaskRevisionSequence(taskId: string, remark: string, newDueDate: Date) {
   const ctx = await getCtx();
   const result = await Service.requestTaskRevisionSequence(ctx, taskId, remark, newDueDate);

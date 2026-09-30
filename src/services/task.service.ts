@@ -348,6 +348,38 @@ export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate
   });
 }
 
+export async function startTask(ctx: AuthContext, taskId: string) {
+  return withAuthTx(ctx, async (tx) => {
+    const task = await tx.task.findUnique({ where: { id: taskId } });
+    if (!task) throw new Error('Task not found');
+    if (task.assigneeId !== ctx.userId && ctx.role !== 'admin') {
+      throw new Error('Unauthorized');
+    }
+    if (!['assigned', 'revision_requested'].includes(task.status)) {
+      throw new Error('Task cannot be started from current state');
+    }
+
+    const updatedTask = await tx.task.update({
+      where: { id: taskId },
+      data: { status: 'in_progress', startDate: new Date() }
+    });
+
+    await tx.activityLog.create({
+      data: {
+        firmId: task.firmId,
+        userId: ctx.userId,
+        projectId: task.projectId,
+        entity: 'task',
+        entityId: taskId,
+        action: 'started',
+        description: 'Task started by staff'
+      }
+    });
+
+    return updatedTask;
+  });
+}
+
 export async function submitTaskForReview(ctx: AuthContext, taskId: string) {
   return withAuthTx(ctx, async (tx) => {
     const task = await tx.task.findUnique({ where: { id: taskId } });

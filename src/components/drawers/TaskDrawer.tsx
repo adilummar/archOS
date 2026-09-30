@@ -259,12 +259,17 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
       toast("Due date is required to assign.", "error");
       return;
     }
-    const finalAssigneeId = task.assigneeId || undefined;
+    const finalAssigneeId = pendingAssigneeId || task.assigneeId || undefined;
+    if (teamMembers.length > 1 && !finalAssigneeId) {
+      toast("Please select an assignee.", "error");
+      return;
+    }
     setIsSaving(true);
     try {
       await TaskActions.assignActiveTask(task.id, new Date(pendingDate), finalAssigneeId);
       toast("Task assigned successfully", "success");
       setPendingDate(null);
+      setPendingAssigneeId(null);
       onClose();
     } catch (err: any) {
       toast(err.message || "Failed to assign task", "error");
@@ -536,27 +541,51 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
         {/* Apply Changes Button */}
         {!readonly && hasPendingChanges && (
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              onClick={handleApply}
-              disabled={isSaving}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 18px",
-                background: "var(--color-accent)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: isSaving ? "not-allowed" : "pointer",
-                opacity: isSaving ? 0.7 : 1,
-                transition: "opacity 0.2s",
-              }}
-            >
-              {isSaving ? "Saving..." : "Apply Changes"}
-            </button>
+            {task.status === "active" ? (
+              <button
+                onClick={handleAssignActiveTask}
+                disabled={isSaving}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 18px",
+                  background: "var(--color-accent)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                  opacity: isSaving ? 0.7 : 1,
+                  transition: "opacity 0.2s",
+                }}
+              >
+                {isSaving ? "Assigning..." : "Assign Task"}
+              </button>
+            ) : (
+              <button
+                onClick={handleApply}
+                disabled={isSaving}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 18px",
+                  background: "var(--color-accent)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                  opacity: isSaving ? 0.7 : 1,
+                  transition: "opacity 0.2s",
+                }}
+              >
+                {isSaving ? "Saving..." : "Apply Changes"}
+              </button>
+            )}
           </div>
         )}
 
@@ -708,8 +737,49 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
           </>
         )}
 
+        {/* Staff Actions */}
+        {!isAdminOrLead && readonly && (
+          <>
+            <div style={{ borderTop: "1px solid var(--color-border)" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "var(--color-bg-input)", padding: "16px", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
+              {['assigned', 'revision_requested'].includes(task.status) && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await TaskActions.startTask(task.id);
+                      toast("Task started", "success");
+                      onClose();
+                    } catch (e: any) {
+                      toast(e.message || "Failed to start task", "error");
+                    }
+                  }}
+                  style={{ width: "100%", background: "var(--color-accent)", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "8px 16px", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
+                >
+                  Start Task
+                </button>
+              )}
+              {task.status === "in_progress" && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await TaskActions.submitTaskForReview(task.id);
+                      toast("Task submitted for review", "success");
+                      onClose();
+                    } catch (e: any) {
+                      toast(e.message || "Failed to submit task", "error");
+                    }
+                  }}
+                  style={{ width: "100%", background: "var(--color-success)", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "8px 16px", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
+                >
+                  Give for Review
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
         {/* Approval section */}
-        {isAdminOrLead && task.status === "review" && (
+        {isAdminOrLead && ['review', 'submitted_for_review'].includes(task.status) && (
           <>
             <div style={{ borderTop: "1px solid var(--color-border)" }} />
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "var(--color-bg-input)", padding: "16px", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
@@ -719,13 +789,29 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
               </span>
               <div style={{ display: "flex", gap: "12px" }}>
                 <button
-                  onClick={() => { reviewTaskMut.mutateAsync({ taskId: task.id, data: { status: "approved", ...{ approvedById: authUser?.id } } }); toast("Task approved", "success"); }}
+                  onClick={async () => {
+                    try {
+                      await TaskActions.approveTaskSequence(task.id);
+                      toast("Task approved", "success");
+                      onClose();
+                    } catch (e: any) {
+                      toast(e.message || "Failed to approve task", "error");
+                    }
+                  }}
                   style={{ flex: 1, background: "var(--color-success)", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "8px 16px", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
                 >
                   Approve
                 </button>
                 <button
-                  onClick={() => reviewTaskMut.mutateAsync({ taskId: task.id, data: { status: "revision_requested", ...{ note: "Revision required" } } })}
+                  onClick={async () => {
+                    try {
+                      await TaskActions.requestTaskRevisionSequence(task.id, "Revision required", new Date());
+                      toast("Revision requested", "success");
+                      onClose();
+                    } catch (e: any) {
+                      toast(e.message || "Failed to request revision", "error");
+                    }
+                  }}
                   style={{ flex: 1, background: "var(--color-warning)", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "8px 16px", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
                 >
                   Request Revision
@@ -767,3 +853,6 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
     </Drawer>
   );
 }
+
+
+

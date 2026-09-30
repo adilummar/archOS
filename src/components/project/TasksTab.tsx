@@ -631,6 +631,7 @@ export function TasksTab({ project }: Props) {
       {/* Task drawer */}
       <TaskDrawer
         taskId={selectedTaskId}
+        readonly={authUser?.role === "staff"}
         onClose={() => setSelectedTaskId(null)}
       />
     </>
@@ -670,5 +671,6 @@ function Select({
     </select>
   );
 }
+
 
 

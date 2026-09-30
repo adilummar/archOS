@@ -18,6 +18,8 @@ import {
   GripVertical,
   Plus,
 } from "lucide-react";
+
+import StaffTasksView from "@/components/tasks/StaffTasksView";
 import {
   DndContext,
   closestCenter,
@@ -400,6 +402,26 @@ export default function TasksPage() {
     );
   }
 
+  if (user?.role === "staff") {
+    return (
+      <>
+        <StaffTasksView 
+          tasks={filteredTasks} 
+          projects={firmProjects} 
+          users={users} 
+          onTaskClick={setSelectedTaskId} 
+        />
+        {selectedTaskId && (
+          <TaskDrawer
+            taskId={selectedTaskId}
+            onClose={() => setSelectedTaskId(null)}
+            readonly={true}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <div
@@ -752,6 +774,7 @@ export default function TasksPage() {
     </>
   );
 }
+
 
 
 
