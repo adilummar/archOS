@@ -294,14 +294,14 @@ export default function TasksPage() {
     // handled by staff or is not yet actionable — hidden from the TL list.
     if (user.role === "team_lead") {
       result = result.filter(t =>
-        t.status === "active" || t.status === "submitted_for_review"
+        ["active", "todo", "submitted_for_review", "review"].includes(t.status)
       );
     }
     // Staff: only see tasks that are their personal responsibility right now.
     else if (user.role === "staff") {
       result = result.filter(t =>
         t.assigneeId === user.id &&
-        ["assigned", "in_progress", "revision_requested"].includes(t.status)
+        ["active", "todo", "assigned", "in_progress", "revision_requested"].includes(t.status)
       );
     }
     // Admin: see everything — no additional filter

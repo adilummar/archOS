@@ -11,7 +11,8 @@ export async function getProjects(ctx: AuthContext, firmId: string) {
         if (ctx.role !== "admin") {
           where.OR = [
             { teamLeadId: ctx.userId },
-            { staffMembers: { some: { userId: ctx.userId } } }
+            { staffMembers: { some: { userId: ctx.userId } } },
+            { tasks: { some: { assigneeId: ctx.userId } } }
           ];
         }
         return tx.project.findMany({

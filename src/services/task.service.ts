@@ -30,10 +30,18 @@ export async function getAllTasksByFirm(ctx: AuthContext, firmId: string) {
   return withAuthTx(ctx, async (tx) => {
     let where: any = { firmId };
     if (ctx.role !== "admin") {
-      where.project = {
+      where = {
+        ...where,
         OR: [
-          { teamLeadId: ctx.userId },
-          { staffMembers: { some: { userId: ctx.userId } } }
+          { assigneeId: ctx.userId },
+          {
+            project: {
+              OR: [
+                { teamLeadId: ctx.userId },
+                { staffMembers: { some: { userId: ctx.userId } } }
+              ]
+            }
+          }
         ]
       };
     }
@@ -234,7 +242,7 @@ export async function getTeamLeadActiveTasks(ctx: AuthContext, teamLeadId: strin
   return withAuthTx(ctx, async (tx) => {
     return tx.task.findMany({
       where: {
-        status: 'active',
+        status: { in: ['active', 'todo'] },
         project: { teamLeadId }
       },
       include: {
@@ -250,7 +258,7 @@ export async function getTeamLeadReviewQueue(ctx: AuthContext, teamLeadId: strin
   return withAuthTx(ctx, async (tx) => {
     return tx.task.findMany({
       where: {
-        status: 'submitted_for_review',
+        status: { in: ['submitted_for_review', 'review'] },
         project: { teamLeadId }
       },
       include: {
@@ -269,7 +277,7 @@ export async function getStaffAssignedTasks(ctx: AuthContext, staffId: string) {
     return tx.task.findMany({
       where: {
         assigneeId: staffId,
-        status: { in: ['assigned', 'in_progress', 'revision_requested'] }
+        status: { in: ['active', 'todo', 'assigned', 'in_progress', 'revision_requested'] }
       },
       include: {
         project: { select: { id: true, name: true } },
@@ -347,7 +355,7 @@ export async function submitTaskForReview(ctx: AuthContext, taskId: string) {
     if (task.assigneeId !== ctx.userId && ctx.role !== 'admin') {
       throw new Error('Unauthorized');
     }
-    if (!['assigned', 'in_progress', 'revision_requested'].includes(task.status)) {
+    if (!['active', 'todo', 'assigned', 'in_progress', 'revision_requested'].includes(task.status)) {
       throw new Error('Task cannot be submitted from current state');
     }
 
