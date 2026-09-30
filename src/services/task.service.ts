@@ -164,7 +164,7 @@ export async function reviewTask(ctx: AuthContext, taskId: string, reviewerId: s
         approvalNote: data.approvalNote,
         approvedById: reviewerId,
         status: data.approvalStatus === "approved" ? "approved" : "in_progress",
-        dueDate: toDateTime(data.newDueDate) || existing.dueDate
+        dueDate: toDateTime(data.newDueDate) || existing.dueDate: parsedDueDate
       }
     });
 
@@ -291,6 +291,8 @@ export async function getStaffAssignedTasks(ctx: AuthContext, staffId: string) {
 
 export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate: Date, assigneeId?: string) {
   return withAuthTx(ctx, async (tx) => {
+    const parsedDueDate = toDateTime(dueDate);
+    if (!parsedDueDate) throw new Error('Invalid due date');
     const task = await tx.task.findUnique({
       where: { id: taskId },
       include: { project: { include: { staffMembers: true } } }
@@ -304,7 +306,7 @@ export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate
 
     const firm = await tx.firm.findUnique({ where: { id: task.firmId } });
     if (firm && firm.minimumTaskLeadTimeDays > 0) {
-      const diffMs = dueDate.getTime() - Date.now();
+      const diffMs = parsedDueDate.getTime() - Date.now();
       const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
       if (diffDays < firm.minimumTaskLeadTimeDays) {
          throw new Error(`Due date must satisfy minimum lead time of ${firm.minimumTaskLeadTimeDays} days.`);
@@ -328,7 +330,7 @@ export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate
       data: {
         status: 'assigned',
         assigneeId: finalAssigneeId,
-        dueDate
+        dueDate: parsedDueDate
       }
     });
 
@@ -354,6 +356,9 @@ export async function startTask(ctx: AuthContext, taskId: string) {
     if (!task) throw new Error('Task not found');
     if (task.assigneeId !== ctx.userId && ctx.role !== 'admin') {
       throw new Error('Unauthorized');
+    }
+    if (task.status === 'in_progress') {
+      return task;
     }
     if (!['assigned', 'revision_requested'].includes(task.status)) {
       throw new Error('Task cannot be started from current state');
