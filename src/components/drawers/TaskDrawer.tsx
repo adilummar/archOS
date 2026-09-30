@@ -759,7 +759,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                   onClick={async () => {
                     try {
                       const updated = await TaskActions.startTask(task.id);
-                      updateTaskLocal(task.id, { status: updated.status as any, startDate: updated.startDate });
+                      updateTaskLocal(task.id, { status: updated.status as any, startDate: updated.startDate as any });
                       toast("Task started", "success");
                       // Do NOT close drawer so they can see "In Progress" and "Give for Review"
                     } catch (e: any) {
