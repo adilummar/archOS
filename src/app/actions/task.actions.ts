@@ -13,25 +13,25 @@ async function getCtx() {
 export async function getTasksByProject(projectId: string) {
   const ctx = await getCtx();
   const result = await Service.getTasksByProject(ctx, projectId);
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function getAllTasksByFirm(firmId: string) {
   const ctx = await getCtx();
   const result = await Service.getAllTasksByFirm(ctx, firmId);
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function getTasksByUser(userId: string, firmId: string, userEmail?: string) {
   const ctx = await getCtx();
   const result = await Service.getTasksByUser(ctx, userId, firmId, userEmail);
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function getTasksByFirm(firmId: string) {
   const ctx = await getCtx();
   const result = await Service.getAllTasksByFirm(ctx, firmId);
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function createTask(data: {
@@ -51,7 +51,7 @@ export async function createTask(data: {
   const result = await Service.createTask(ctx, data);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function updateTask(taskId: string,
@@ -79,7 +79,7 @@ export async function updateTask(taskId: string,
   const result = await Service.updateTask(ctx, taskId, data, firmId, actorId!);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function deleteTask(taskId: string, firmId: string, actorId?: string) {
@@ -87,7 +87,7 @@ export async function deleteTask(taskId: string, firmId: string, actorId?: strin
   const result = await Service.deleteTask(ctx, taskId, firmId, actorId!);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function addSubtask(data: {
@@ -100,7 +100,7 @@ export async function addSubtask(data: {
   const result = await Service.addSubtask(ctx, data);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function toggleSubtask(subtaskId: string, completed: boolean) {
@@ -108,7 +108,7 @@ export async function toggleSubtask(subtaskId: string, completed: boolean) {
   const result = await Service.toggleSubtask(ctx, subtaskId, completed);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function reviewTask(taskId: string,
@@ -124,7 +124,7 @@ export async function reviewTask(taskId: string,
   const result = await Service.reviewTask(ctx, taskId, reviewerId, firmId, data);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function assignTaskWithOverride(data: {
@@ -140,7 +140,7 @@ export async function assignTaskWithOverride(data: {
   const result = await Service.assignTaskWithOverride(ctx, data);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 
@@ -153,7 +153,7 @@ export async function assignActiveTask(taskId: string, dueDate: Date, assigneeId
   const result = await Service.assignActiveTask(ctx, taskId, dueDate, assigneeId);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function submitTaskForReview(taskId: string) {
@@ -161,7 +161,7 @@ export async function submitTaskForReview(taskId: string) {
   const result = await Service.submitTaskForReview(ctx, taskId);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function startTask(taskId: string) {
@@ -169,7 +169,7 @@ export async function startTask(taskId: string) {
   const result = await Service.startTask(ctx, taskId);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function requestTaskRevisionSequence(taskId: string, remark: string, newDueDate: Date) {
@@ -177,7 +177,7 @@ export async function requestTaskRevisionSequence(taskId: string, remark: string
   const result = await Service.requestTaskRevisionSequence(ctx, taskId, remark, newDueDate);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
 export async function approveTaskSequence(taskId: string) {
@@ -185,5 +185,5 @@ export async function approveTaskSequence(taskId: string) {
   const result = await Service.approveTaskSequence(ctx, taskId);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
-  return JSON.parse(JSON.stringify(result));
+  return JSON.parse(JSON.stringify(result)) as typeof result;
 }
