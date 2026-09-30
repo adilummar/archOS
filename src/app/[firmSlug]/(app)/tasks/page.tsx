@@ -560,8 +560,7 @@ export default function TasksPage() {
           </select>
 
           {/* My tasks toggle */}
-          {user?.role !== "staff" && (
-            <label
+          <label
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -583,9 +582,8 @@ export default function TasksPage() {
                 style={{ display: "none" }}
               />
               My tasks only
-            </label>
-          )}
-        </div>
+              </label>
+          </div>
 
         {/* ─── LIST VIEW ───────────────────────────────────────────────────── */}
         {view === "list" && (
@@ -774,6 +772,8 @@ export default function TasksPage() {
     </>
   );
 }
+
+
 
 
 
