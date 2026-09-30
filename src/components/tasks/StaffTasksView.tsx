@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { format, isPast, parseISO } from "date-fns";
-import StatusBadge from "@/components/shared/StatusBadge";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Task, Project, User } from "@/lib/store/types";
 
 export default function StaffTasksView({
@@ -207,3 +207,4 @@ export default function StaffTasksView({
     </div>
   );
 }
+
