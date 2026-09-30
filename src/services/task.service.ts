@@ -164,7 +164,7 @@ export async function reviewTask(ctx: AuthContext, taskId: string, reviewerId: s
         approvalNote: data.approvalNote,
         approvedById: reviewerId,
         status: data.approvalStatus === "approved" ? "approved" : "in_progress",
-        dueDate: toDateTime(data.newDueDate) || existing.dueDate: parsedDueDate
+        dueDate: toDateTime(data.newDueDate) || existing.dueDate
       }
     });
 
