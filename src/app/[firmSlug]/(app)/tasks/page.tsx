@@ -282,7 +282,12 @@ export default function TasksPage() {
     
     // Only show tasks for active projects on this global view
     const activeProjectIds = new Set(firmProjects.map(p => p.id));
-    let result = tasks.filter((t) => t.firmId === firm.id && activeProjectIds.has(t.projectId));
+    let result = tasks.filter((t) => {
+      if (t.firmId !== firm.id) return false;
+      if (activeProjectIds.has(t.projectId)) return true;
+      if (t.assigneeId === user.id) return true;
+      return false;
+    });
 
     
 

@@ -25,6 +25,7 @@ export async function getStaffByFirm(firmId: string) {
 export async function getProjectsByFirm(firmId: string) {
   const ctx = await getCtx();
   const result = await Service.getProjectsByFirm(ctx, firmId);
+  console.log("DEBUG PROJECTS:", result.map(p => ({ id: p.id, name: p.name, status: p.status })));
   return result;
 }
 
