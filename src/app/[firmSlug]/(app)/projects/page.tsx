@@ -12,6 +12,7 @@ import {
   FolderOpen,
   Pencil,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { useProjectStore } from "@/lib/store/project.store";
 import { useProjects, useDeleteProject } from "@/hooks/useProjects";
@@ -329,6 +330,8 @@ export default function ProjectsPage() {
             const stage = p.stages.find((s) => s.id === p.currentStageId);
             const daysLeft = p.expectedEndDate ? (p.expectedEndDate ? differenceInDays(parseISO(p.expectedEndDate), new Date()) : 0) : null;
             const isPast = daysLeft !== null && daysLeft < 0;
+              const priorityDays = firm?.priorityPeriodDays ?? 7;
+              const isWarning = !isPast && daysLeft !== null && daysLeft <= priorityDays;
 
             return (
               <div
@@ -480,6 +483,8 @@ export default function ProjectsPage() {
                 const stage = p.stages.find((s) => s.id === p.currentStageId);
                 const daysLeft = p.expectedEndDate ? (p.expectedEndDate ? differenceInDays(parseISO(p.expectedEndDate), new Date()) : 0) : null;
                 const isPast = daysLeft !== null && daysLeft < 0;
+              const priorityDays = firm?.priorityPeriodDays ?? 7;
+              const isWarning = !isPast && daysLeft !== null && daysLeft <= priorityDays;
 
                 return (
                   <tr

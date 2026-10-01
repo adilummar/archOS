@@ -1161,16 +1161,18 @@ function PortalSettingsSection() {
     maxClientSessions: String(s?.maxClientSessions ?? 3),
     drawingNumberingEnabled: s?.drawingNumberingEnabled ?? true,
       minimumTaskLeadTimeDays: String(liveFirm?.minimumTaskLeadTimeDays ?? 3),
+      priorityPeriodDays: String(liveFirm?.priorityPeriodDays ?? 7),
     });
 
   const handleSave = () => {
     if (!liveFirm) return;
     updateFirm(liveFirm.id, {
         minimumTaskLeadTimeDays: parseInt(form.minimumTaskLeadTimeDays) || 3,
+        priorityPeriodDays: parseInt(form.priorityPeriodDays) || 7,
       });
       const authStore = useAuthStore.getState();
       if (authStore.firm && authStore.firm.id === liveFirm.id) {
-        useAuthStore.setState({ firm: { ...authStore.firm, minimumTaskLeadTimeDays: parseInt(form.minimumTaskLeadTimeDays) || 3 } });
+        useAuthStore.setState({ firm: { ...authStore.firm, minimumTaskLeadTimeDays: parseInt(form.minimumTaskLeadTimeDays) || 3, priorityPeriodDays: parseInt(form.priorityPeriodDays) || 7 } });
       }
       updateFirmSettings(liveFirm.id, {
       defaultFileRequestWindowDays: parseInt(form.defaultFileRequestWindowDays) || 7,
