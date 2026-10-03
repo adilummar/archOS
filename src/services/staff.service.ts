@@ -58,12 +58,10 @@ async function resolveFirmId(firmId: string, userEmail?: string): Promise<string
  */
 export async function getStaffWithAttendance(ctx: AuthContext, firmId: string, userEmail?: string) {
   return withAuthTx(ctx, async tx => {
-    return withAuthTx(ctx, async tx => {
-      return withAuthTx(ctx, async tx => {
-        const today = new Date().toISOString().slice(0, 10);
-        const realFirmId = await resolveFirmId(firmId, userEmail);
-        if (!realFirmId) return [];
-        const staff = await tx.user.findMany({
+    const today = new Date().toISOString().slice(0, 10);
+    const realFirmId = await resolveFirmId(firmId, userEmail);
+    if (!realFirmId) return [];
+    const staff = await tx.user.findMany({
           where: {
             firmId: realFirmId,
             status: "active"
@@ -114,8 +112,6 @@ export async function getStaffWithAttendance(ctx: AuthContext, firmId: string, u
           }
         });
         return staff;
-      });
-    });
   });
 }
 
@@ -125,9 +121,7 @@ export async function getStaffWithAttendance(ctx: AuthContext, firmId: string, u
  */
 export async function getTeamLeadStaffWithAttendance(ctx: AuthContext, leadId: string, userEmail?: string) {
   return withAuthTx(ctx, async tx => {
-    return withAuthTx(ctx, async tx => {
-      return withAuthTx(ctx, async tx => {
-        const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
 
         // Resolve real DB user ID
         let realLeadId = leadId;
@@ -229,8 +223,6 @@ export async function getTeamLeadStaffWithAttendance(ctx: AuthContext, leadId: s
           };
         });
         return staffWithProjects;
-      });
-    });
   });
 }
 
@@ -239,9 +231,7 @@ export async function getTeamLeadStaffWithAttendance(ctx: AuthContext, leadId: s
  */
 export async function getStaffProfile(ctx: AuthContext, userId: string) {
   return withAuthTx(ctx, async tx => {
-    return withAuthTx(ctx, async tx => {
-      return withAuthTx(ctx, async tx => {
-        const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const [user, attendance, tasks, recentLogs] = await Promise.all([
@@ -373,8 +363,6 @@ export async function getStaffProfile(ctx: AuthContext, userId: string) {
             totalPending
           }
         };
-      });
-    });
   });
 }
 

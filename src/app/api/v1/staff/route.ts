@@ -4,6 +4,8 @@ import * as StaffService from "@/services/staff.service";
 import * as UserService from "@/services/user.service";
 import { requireFeature } from "@/services/feature.service";
 
+export const dynamic = "force-dynamic";
+
 export const GET = withAuth(async (ctx, req) => {
   await requireFeature(ctx, "STAFF");
   if (ctx.role === "team_lead") {
