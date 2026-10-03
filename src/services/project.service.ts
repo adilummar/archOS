@@ -140,6 +140,7 @@ export async function createProject(ctx: AuthContext, data: {
   feeStructure?: string;
   projectValue?: number;
 }) {
+  if (ctx.role !== 'admin') throw new Error('Unauthorized: Only Admin can create projects');
   return withAuthTx(ctx, async tx => {
     return withAuthTx(ctx, async tx => {
       return withAuthTx(ctx, async tx => {
@@ -181,6 +182,7 @@ export async function createProject(ctx: AuthContext, data: {
 
 // â”€â”€ UPDATE project â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function updateProject(ctx: AuthContext, projectId: string, data: Partial<any>) {
+  if (ctx.role !== 'admin' && ctx.role !== 'team_lead') throw new Error('Unauthorized');
   return withAuthTx(ctx, async tx => {
     return withAuthTx(ctx, async tx => {
       return withAuthTx(ctx, async tx => {
@@ -324,6 +326,7 @@ export async function instantiateProjectFromTemplate(ctx: AuthContext, data: {
   feeAgreed?: number;
   projectValue?: number;
 }) {
+  if (ctx.role !== 'admin') throw new Error('Unauthorized: Only Admin can create projects');
   return withAuthTx(ctx, async tx => {
     return withAuthTx(ctx, async tx => {
       return withAuthTx(ctx, async tx => {
@@ -570,9 +573,11 @@ export async function createClient(ctx: AuthContext, data: {
 }
 
 export async function deleteProject(ctx: AuthContext, projectId: string) {
+  if (ctx.role !== 'admin') throw new Error('Unauthorized');
   return withAuthTx(ctx, async tx => {
     return tx.project.delete({
       where: { id: projectId }
     });
   });
 }
+

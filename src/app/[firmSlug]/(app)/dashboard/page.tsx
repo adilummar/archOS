@@ -6,6 +6,7 @@ import { format, isToday } from "date-fns";
 import { CheckSquare, Plus } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useProjectStore } from "@/lib/store/project.store";
+import { useTasks } from "@/hooks/useTasks";
 import { useTaskStore } from "@/lib/store/task.store";
 import { useFirmStore } from "@/lib/store/firm.store";
 
@@ -28,9 +29,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const params = useParams<{ firmSlug: string }>();
   const { user, firm } = useAuthStore();
+  const { data: tasks = [] } = useTasks(firm?.id || "");
   const { users } = useFirmStore();
   const { projects } = useProjectStore();
-  const { tasks } = useTaskStore();
   
   const [ready, setReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -56,7 +57,7 @@ export default function DashboardPage() {
   
   const overdueTasks = openTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date());
   const priorityTasks = openTasks.filter(t => t.priority === "high");
-  const reviewTasks = openTasks.filter(t => t.status === "review");
+  const reviewTasks = openTasks.filter(t => ["submitted_for_review", "review"].includes(t.status));
 
   const staffMembers = users.filter(u => u.firmId === firmId && u.status === "active").slice(0, 3);
   const staffStatuses = staffMembers.map((s, idx) => ({
@@ -256,3 +257,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

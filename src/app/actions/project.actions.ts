@@ -1,15 +1,19 @@
 "use server";
 import { getSession } from "@/lib/session";
 import { getAuthContext } from "@/services/auth.service";
+import { requireFeature } from "@/services/feature.service";
 import { revalidatePath } from "next/cache";
 import * as Service from "@/services/project.service";
 
 async function getCtx() {
   const session = await getSession();
   if (!session.userId) throw new Error("Unauthorized");
-  return getAuthContext(session.userId);
+  const ctx = await getAuthContext(session.userId);
+  await requireFeature(ctx, "PROJECTS");
+  return ctx;
 }
 
+/** @deprecated Migrated to TanStack Query API: /api/v1/projects */
 export async function getProjects(firmId: string) {
   const ctx = await getCtx();
   const result = await Service.getProjects(ctx, firmId);
@@ -17,12 +21,14 @@ export async function getProjects(firmId: string) {
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query API: /api/v1/projects */
 export async function getProject(projectId: string) {
   const ctx = await getCtx();
   const result = await Service.getProject(ctx, projectId);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query API: /api/v1/projects */
 export async function createProject(data: {
   firmId: string;
   name: string;
@@ -45,6 +51,7 @@ export async function createProject(data: {
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query API: /api/v1/projects */
 export async function updateProject(projectId: string,
   data: Partial<{
     name: string;
@@ -106,6 +113,7 @@ export async function updateStageStatus(stageId: string,
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query API: /api/v1/projects */
 export async function instantiateProjectFromTemplate(data: {
   firmId: string;
   templateId: string;
@@ -146,6 +154,7 @@ export async function getTemplatesByFirm(firmId: string) {
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query API: /api/v1/projects */
 export async function createClient(data: { firmId: string; name: string; email: string; }) {
   const ctx = await getCtx();
   const result = await Service.createClient(ctx, data);

@@ -1,72 +1,98 @@
-import type { Task, Project } from "@/lib/store/types";
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+  data?: any;
 
-export async function fetchTasks(firmId: string): Promise<Task[]> {
-  const res = await fetch("/api/v1/tasks?firmId=" + firmId);
-  if (!res.ok) throw new Error("Failed to fetch tasks");
-  return res.json();
-}
-
-export async function fetchProjects(firmId: string): Promise<Project[]> {
-  const res = await fetch("/api/v1/projects?firmId=" + firmId);
-  if (!res.ok) throw new Error("Failed to fetch projects");
-  return res.json();
-}
-
-export async function createTask(firmId: string, data: any) {
-  const res = await fetch("/api/v1/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("Failed to create task");
-  return res.json();
+  constructor(status: number, message: string, code?: string, data?: any) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.data = data;
+  }
 }
 
-export async function updateTask(taskId: string, firmId: string, actorId: string, data: any) {
-  const res = await fetch("/api/v1/tasks/" + taskId + "?firmId=" + firmId + "&actorId=" + actorId, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("Failed to update task");
-  return res.json();
+async function handleResponse<T>(res: Response): Promise<T> {
+  let body: any;
+  try {
+    body = await res.json();
+  } catch (err) {
+    body = null;
+  }
+
+  if (!res.ok) {
+    const errorMsg = body?.error || body?.message || res.statusText || 'Something went wrong';
+    let code = body?.code;
+
+    if (res.status === 401) code = 'UNAUTHORIZED';
+    if (res.status === 403) {
+      if (errorMsg.includes('Feature not enabled')) {
+        code = 'FEATURE_DISABLED';
+      } else if (errorMsg.includes('suspended')) {
+        code = 'FIRM_SUSPENDED';
+      } else if (errorMsg.includes('deactivated')) {
+        code = 'USER_DEACTIVATED';
+      } else {
+        code = 'FORBIDDEN';
+      }
+    }
+    if (res.status === 404) code = 'NOT_FOUND';
+    if (res.status === 409) code = 'CONFLICT';
+    if (res.status === 422) code = 'VALIDATION';
+
+    throw new ApiError(res.status, errorMsg, code, body);
+  }
+
+  return body as T;
 }
 
-export async function deleteTask(taskId: string, firmId: string, actorId: string) {
-  const res = await fetch("/api/v1/tasks/" + taskId + "?firmId=" + firmId + "&actorId=" + actorId, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete task");
-  return res.json();
-}
+const defaultHeaders = {
+  'Content-Type': 'application/json',
+};
 
-export async function reviewTask(taskId: string, reviewerId: string, firmId: string, data: any) {
-  const res = await fetch("/api/v1/tasks/" + taskId + "/review?firmId=" + firmId + "&reviewerId=" + reviewerId, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("Failed to review task");
-  return res.json();
-}
+// Centralized API client methods
+export const api = {
+  async get<T>(url: string, params?: Record<string, string>): Promise<T> {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(url + qs, {
+      method: 'GET',
+      headers: defaultHeaders,
+    });
+    return handleResponse<T>(res);
+  },
 
-export async function overrideTask(taskId: string, data: any) {
-  const res = await fetch("/api/v1/tasks/" + taskId + "/override", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("Failed to override task");
-  return res.json();
-}
+  async post<T>(url: string, data: any): Promise<T> {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: defaultHeaders,
+      body: JSON.stringify(data),
+    });
+    return handleResponse<T>(res);
+  },
 
-export async function addSubtask(taskId: string, data: any) {
-  const res = await fetch("/api/v1/tasks/" + taskId + "/subtasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("Failed to add subtask");
-  return res.json();
-}
+  async patch<T>(url: string, data: any): Promise<T> {
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: defaultHeaders,
+      body: JSON.stringify(data),
+    });
+    return handleResponse<T>(res);
+  },
 
-export async function toggleSubtask(subtaskId: string, data: any) {
-  const res = await fetch("/api/v1/subtasks/" + subtaskId, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("Failed to toggle subtask");
-  return res.json();
-}
+  async put<T>(url: string, data: any): Promise<T> {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: defaultHeaders,
+      body: JSON.stringify(data),
+    });
+    return handleResponse<T>(res);
+  },
 
-export async function createProject(data: any) {
-  const res = await fetch("/api/v1/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("Failed to create project");
-  return res.json();
-}
-
-export async function updateProject(projectId: string, data: any) {
-  const res = await fetch("/api/v1/projects/" + projectId, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("Failed to update project");
-  return res.json();
-}
-export async function deleteProject(projectId: string) {
-  const res = await fetch("/api/v1/projects/" + projectId, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete project");
-  return res.json();
-}
+  async delete<T>(url: string): Promise<T> {
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: defaultHeaders,
+    });
+    return handleResponse<T>(res);
+  },
+};

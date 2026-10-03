@@ -10,6 +10,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Search, Folder, CheckSquare, FileText, Users, TrendingUp, MessageSquare, X } from "lucide-react";
 import { useProjectStore } from "../../lib/store/project.store";
+import { useTasks } from "@/hooks/useTasks";
+import { useStaff } from "@/hooks/useStaff";
 import { useTaskStore } from "../../lib/store/task.store";
 import { useFileStore } from "../../lib/store/file.store";
 import { useFirmStore } from "../../lib/store/firm.store";
@@ -54,8 +56,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const firmSlug = params?.firmSlug ?? "demo";
 
   const { user, firm } = useAuthStore();
+  const { data: tasks = [] } = useTasks(firm?.id || "");
   const { projects } = useProjectStore();
-  const { tasks } = useTaskStore();
   const { files } = useFileStore();
   const { users, clients, contractors } = useFirmStore();
   const { leads } = useCrmStore();

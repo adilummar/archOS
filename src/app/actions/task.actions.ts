@@ -1,39 +1,47 @@
 "use server";
 import { getSession } from "@/lib/session";
 import { getAuthContext } from "@/services/auth.service";
+import { requireFeature } from "@/services/feature.service";
 import { revalidatePath } from "next/cache";
 import * as Service from "@/services/task.service";
 
 async function getCtx() {
   const session = await getSession();
   if (!session.userId) throw new Error("Unauthorized");
-  return getAuthContext(session.userId);
+  const ctx = await getAuthContext(session.userId);
+  await requireFeature(ctx, "TASKS");
+  return ctx;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getTasksByProject(projectId: string) {
   const ctx = await getCtx();
   const result = await Service.getTasksByProject(ctx, projectId);
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getAllTasksByFirm(firmId: string) {
   const ctx = await getCtx();
   const result = await Service.getAllTasksByFirm(ctx, firmId);
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getTasksByUser(userId: string, firmId: string, userEmail?: string) {
   const ctx = await getCtx();
   const result = await Service.getTasksByUser(ctx, userId, firmId, userEmail);
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getTasksByFirm(firmId: string) {
   const ctx = await getCtx();
   const result = await Service.getAllTasksByFirm(ctx, firmId);
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function createTask(data: {
   firmId: string;
   projectId: string;
@@ -54,6 +62,7 @@ export async function createTask(data: {
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function updateTask(taskId: string,
   data: Partial<{
     title: string;
@@ -82,6 +91,7 @@ export async function updateTask(taskId: string,
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function deleteTask(taskId: string, firmId: string, actorId?: string) {
   const ctx = await getCtx();
   const result = await Service.deleteTask(ctx, taskId, firmId, actorId!);
@@ -90,6 +100,7 @@ export async function deleteTask(taskId: string, firmId: string, actorId?: strin
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function addSubtask(data: {
   taskId: string;
   title: string;
@@ -103,6 +114,7 @@ export async function addSubtask(data: {
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function toggleSubtask(subtaskId: string, completed: boolean) {
   const ctx = await getCtx();
   const result = await Service.toggleSubtask(ctx, subtaskId, completed);
@@ -111,6 +123,7 @@ export async function toggleSubtask(subtaskId: string, completed: boolean) {
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function reviewTask(taskId: string,
   reviewerId: string,
   firmId: string,
@@ -127,6 +140,7 @@ export async function reviewTask(taskId: string,
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function assignTaskWithOverride(data: {
   firmId: string;
   taskId: string;
@@ -148,14 +162,16 @@ export async function assignTaskWithOverride(data: {
 
 
 
-export async function assignActiveTask(taskId: string, dueDate: Date, assigneeId?: string) {
+/** @deprecated Migrated to TanStack Query */
+export async function assignActiveTask(taskId: string, dueDate?: Date | null, assigneeId?: string) {
   const ctx = await getCtx();
-  const result = await Service.assignActiveTask(ctx, taskId, dueDate, assigneeId);
+  const result = await Service.assignActiveTask(ctx, taskId, dueDate ? new Date(dueDate) : null, assigneeId);
   revalidatePath("/[firmSlug]/projects/[projectId]", "page");
   revalidatePath("/[firmSlug]/tasks", "page");
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function submitTaskForReview(taskId: string) {
   const ctx = await getCtx();
   const result = await Service.submitTaskForReview(ctx, taskId);
@@ -164,6 +180,7 @@ export async function submitTaskForReview(taskId: string) {
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function startTask(taskId: string) {
   const ctx = await getCtx();
   const result = await Service.startTask(ctx, taskId);
@@ -172,6 +189,7 @@ export async function startTask(taskId: string) {
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function requestTaskRevisionSequence(taskId: string, remark: string, newDueDate: Date) {
   const ctx = await getCtx();
   const result = await Service.requestTaskRevisionSequence(ctx, taskId, remark, newDueDate);
@@ -180,6 +198,7 @@ export async function requestTaskRevisionSequence(taskId: string, remark: string
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function approveTaskSequence(taskId: string) {
   const ctx = await getCtx();
   const result = await Service.approveTaskSequence(ctx, taskId);
@@ -187,3 +206,5 @@ export async function approveTaskSequence(taskId: string) {
   revalidatePath("/[firmSlug]/tasks", "page");
   return JSON.parse(JSON.stringify(result)) as typeof result;
 }
+
+

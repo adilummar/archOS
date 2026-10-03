@@ -7,7 +7,7 @@ import { Avatar } from "../../components/shared/Avatar";
 import { useTaskStore } from "../../lib/store/task.store";
 import { useFirmStore } from "../../lib/store/firm.store";
 import { useAuthStore } from "../../lib/store/auth.store";
-import { useUpdateTask, useDeleteTask, useReviewTask, useOverrideTask, useAddSubtask, useToggleSubtask } from "@/hooks/useTasks";
+import { useTasks, useUpdateTask, useDeleteTask, useAssignTaskSequence, useSubmitTaskForReviewSequence, useApproveTaskSequence, useRequestTaskRevisionSequence, useStartTaskSequence, useReviewTask, useOverrideTask, useAddSubtask, useToggleSubtask } from "@/hooks/useTasks";
 import { useProjectStore } from "../../lib/store/project.store";
 import { toast } from "../../lib/store/toast.store";
 import * as TaskActions from "@/app/actions/task.actions";
@@ -179,12 +179,16 @@ function ReassignControl({
 // ─── TaskDrawer ─────────────────────────────────────────────────────────────
 
 export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
-  const tasks = useTaskStore((s) => s.tasks);
-  const task = tasks.find((t) => t.id === taskId);
-  const updateTaskLocal = useTaskStore((s) => s.updateTask);
-            
   const authUser = useAuthStore((s) => s.user);
   const firmId = authUser?.firmId || "";
+  const { data: tasks = [] } = useTasks(firmId);
+  const task = tasks.find((t) => t.id === taskId);
+
+    const assignTaskMut = useAssignTaskSequence(firmId);
+  const startTaskMut = useStartTaskSequence(firmId);
+  const submitReviewMut = useSubmitTaskForReviewSequence(firmId);
+  const approveTaskMut = useApproveTaskSequence(firmId);
+  const requestRevisionMut = useRequestTaskRevisionSequence(firmId);
   const updateTaskMut = useUpdateTask(firmId, authUser?.id || "");
   const deleteTaskMut = useDeleteTask(firmId, authUser?.id || "");
   const reviewTaskMut = useReviewTask(firmId, authUser?.id || "");
@@ -241,7 +245,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
   const handleStatusChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value as any;
-    updateTaskLocal(task.id, { status: val });
+    // updateTaskLocal(task.id, { status: val });
     updateTaskMut.mutateAsync({ taskId: task.id, data: { status: val } });
     toast("Status updated", "success");
   };
@@ -256,18 +260,16 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
 
   const handleAssignActiveTask = async () => {
-    if (!pendingDate) {
-      toast("Due date is required to assign.", "error");
-      return;
-    }
     const finalAssigneeId = pendingAssigneeId || task.assigneeId || undefined;
-    if (teamMembers.length > 1 && !finalAssigneeId) {
+    const projectStaffCount = project?.staffIds?.length ?? 0;
+    if (projectStaffCount > 1 && !finalAssigneeId) {
       toast("Please select an assignee.", "error");
       return;
     }
     setIsSaving(true);
     try {
-      await TaskActions.assignActiveTask(task.id, new Date(pendingDate), finalAssigneeId);
+      const parsedDate = pendingDate ? new Date(pendingDate) : null;
+      await assignTaskMut.mutateAsync({ taskId: task.id, dueDate: parsedDate ? parsedDate.toISOString() : null, assigneeId: finalAssigneeId });
       toast("Task assigned successfully", "success");
       setPendingDate(null);
       setPendingAssigneeId(null);
@@ -294,7 +296,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const handleGiveForReview = async () => {
     setIsSaving(true);
     try {
-      await TaskActions.submitTaskForReview(task.id);
+      await submitReviewMut.mutateAsync({ taskId: task.id });
       toast("Task submitted for review", "success");
       onClose();
     } catch (err: any) {
@@ -307,7 +309,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const handleApprove = async () => {
     setIsSaving(true);
     try {
-      await TaskActions.approveTaskSequence(task.id);
+      await approveTaskMut.mutateAsync({ taskId: task.id });
       toast("Task approved and completed", "success");
       onClose();
     } catch (err: any) {
@@ -324,7 +326,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
     if (!dateStr) return;
     setIsSaving(true);
     try {
-      await TaskActions.requestTaskRevisionSequence(task.id, remark, new Date(dateStr));
+      await requestRevisionMut.mutateAsync({ taskId: task.id, remark, newDueDate: new Date(dateStr).toISOString() });
       toast("Revision requested", "success");
       onClose();
     } catch (err: any) {
@@ -345,7 +347,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
     if (Object.keys(patch).length === 0) return;
     setIsSaving(true);
     try {
-      updateTaskLocal(task.id, patch as any);
+      // updateTaskLocal(task.id, patch as any);
       await updateTaskMut.mutateAsync({ taskId: task.id, data: patch });
       setPendingDate(null);
       setPendingPriority(null);
@@ -550,8 +552,8 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
           </div>
         </div>
 
-        {/* Apply Changes Button */}
-        {!readonly && hasPendingChanges && (
+        {/* Apply Changes Button — active tasks can be assigned with no due date and no other edits */}
+        {!readonly && (hasPendingChanges || (isAdminOrLead && task.status === "active")) && (
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             {task.status === "active" ? (
               <button
@@ -758,9 +760,8 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <button
                   onClick={async () => {
                     try {
-                      const updated = await TaskActions.startTask(task.id);
-                      updateTaskLocal(task.id, { status: updated.status as any, startDate: updated.startDate as any });
-                      toast("Task started", "success");
+                      await startTaskMut.mutateAsync({ taskId: task.id });
+                                            toast("Task started", "success");
                       // Do NOT close drawer so they can see "In Progress" and "Give for Review"
                     } catch (e: any) {
                       toast(e.message || "Failed to start task", "error");
@@ -775,9 +776,8 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <button
                   onClick={async () => {
                     try {
-                      const updated = await TaskActions.submitTaskForReview(task.id);
-                      updateTaskLocal(task.id, { status: updated.status as any });
-                      toast("Task submitted for review", "success");
+                      const updated = await submitReviewMut.mutateAsync({ taskId: task.id });
+                                            toast("Task submitted for review", "success");
                       // Do NOT close drawer so they see it's submitted
                     } catch (e: any) {
                       toast(e.message || "Failed to submit task", "error");
@@ -805,7 +805,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <button
                   onClick={async () => {
                     try {
-                      await TaskActions.approveTaskSequence(task.id);
+                      await approveTaskMut.mutateAsync({ taskId: task.id });
                       toast("Task approved", "success");
                       onClose();
                     } catch (e: any) {
@@ -819,7 +819,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <button
                   onClick={async () => {
                     try {
-                      await TaskActions.requestTaskRevisionSequence(task.id, "Revision required", new Date());
+                      await requestRevisionMut.mutateAsync({ taskId: task.id, remark: "Revision required", newDueDate: new Date().toISOString() });
                       toast("Revision requested", "success");
                       onClose();
                     } catch (e: any) {

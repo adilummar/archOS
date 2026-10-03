@@ -30,6 +30,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTaskStore } from "../../lib/store/task.store";
+import { useTasks, useUpdateTask } from "@/hooks/useTasks";
 import { useFirmStore } from "../../lib/store/firm.store";
 import { useAuthStore } from "../../lib/store/auth.store";
 import { StatusBadge } from "../shared/StatusBadge";
@@ -171,7 +172,7 @@ const KANBAN_COLUMNS = [
   { id: "assigned", label: "Assigned", color: "var(--color-info)" },
   { id: "todo", label: "To Do", color: "var(--color-text-muted)" },
   { id: "in_progress", label: "In Progress", color: "var(--color-info)" },
-  { id: "review", label: "Review", color: "var(--color-warning)" },
+  { id: "submitted_for_review", label: "Submitted for Review", color: "var(--color-warning)" }, { id: "review", label: "Review", color: "var(--color-warning)" },
   { id: "submitted_for_review", label: "Submitted for Review", color: "var(--color-warning)" },
   { id: "revision_requested", label: "Revision Requested", color: "var(--color-destructive)" },
   { id: "approved", label: "Approved", color: "var(--color-success)" },
@@ -405,9 +406,12 @@ interface Props {
 }
 
 export function TasksTab({ project }: Props) {
-  const { tasks, setTaskStatus } = useTaskStore();
   const { users } = useFirmStore();
   const { user } = useAuthStore();
+  const { data: tasks = [] } = useTasks(project.firmId);
+  const updateTaskMut = useUpdateTask(project.firmId, user?.id || "");
+
+
   const [view, setView] = useState<"list" | "kanban">("list");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
@@ -429,7 +433,7 @@ export function TasksTab({ project }: Props) {
     if (!sourceTask) return;
 
     if (sourceTask.status !== targetColumnId) {
-      setTaskStatus(sourceTask.id, targetColumnId as any);
+      updateTaskMut.mutateAsync({ taskId: sourceTask.id, data: { status: targetColumnId } });
     }
   };
 
@@ -671,6 +675,7 @@ function Select({
     </select>
   );
 }
+
 
 
 

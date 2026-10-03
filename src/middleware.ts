@@ -7,7 +7,7 @@ import { sessionOptions, type SessionData, platformSessionOptions, type Platform
  * Protected routes — any path that requires authentication.
  * Public routes — accessible without a session.
  */
-const PUBLIC_PATHS = [
+const PUBLIC_PATHS = ["/api/health", 
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/super-admin/login",
@@ -35,6 +35,11 @@ export async function middleware(req: NextRequest) {
     const platformSession = await getIronSession<PlatformSessionData>(await cookies(), platformSessionOptions);
     if (!platformSession.platformAdminId) {
       if (pathname.startsWith("/api/")) {
+        // If they have a regular tenant session, it's 403 Forbidden. Otherwise 401.
+        const tenantSession = await getIronSession<SessionData>(await cookies(), sessionOptions);
+        if (tenantSession.userId) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       return NextResponse.redirect(new URL("/super-admin/login", req.url));

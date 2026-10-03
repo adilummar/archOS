@@ -12,24 +12,28 @@ async function getCtx() {
   return getAuthContext(session.userId);
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getStaffWithAttendance(firmId: string, userEmail?: string) {
   const ctx = await getCtx();
   const result = await Service.getStaffWithAttendance(ctx, firmId, userEmail);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getTeamLeadStaffWithAttendance(leadId: string, userEmail?: string) {
   const ctx = await getCtx();
   const result = await Service.getTeamLeadStaffWithAttendance(ctx, leadId, userEmail);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getStaffProfile(userId: string) {
   const ctx = await getCtx();
   const result = await Service.getStaffProfile(ctx, userId);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function addStaffMember(data: {
   firmId: string;
   name: string;
@@ -71,6 +75,7 @@ export async function addStaffMember(data: {
   return user;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function editStaffMember(
   userId: string,
   data: {
@@ -107,6 +112,7 @@ export async function editStaffMember(
   return updated;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function suspendStaffMember(staffId: string) {
   const ctx = await getCtx();
   const caller = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true } });
@@ -122,6 +128,7 @@ export async function suspendStaffMember(staffId: string) {
   return updated;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function unsuspendStaffMember(staffId: string) {
   const ctx = await getCtx();
   const caller = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true } });
@@ -137,6 +144,7 @@ export async function unsuspendStaffMember(staffId: string) {
   return updated;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function changeStaffPassword(staffId: string, newPassword: string) {
   const ctx = await getCtx();
   const caller = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true } });

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-utils";
 import * as TaskService from "@/services/task.service";
+import { getAuthContext } from "@/services/auth.service";
+import { requireFeature } from "@/services/feature.service";
 
 export const GET = withAuth(async (ctx, req) => {
+  await requireFeature(ctx, "TASKS");
   const url = new URL(req.url);
   const projectId = url.searchParams.get("projectId");
   const firmId = url.searchParams.get("firmId");
@@ -39,6 +42,7 @@ export const GET = withAuth(async (ctx, req) => {
 });
 
 export const POST = withAuth(async (ctx, req) => {
+  await requireFeature(ctx, "TASKS");
   const data = await req.json();
   const task = await TaskService.createTask(ctx, data);
   return NextResponse.json(task, { status: 201 });

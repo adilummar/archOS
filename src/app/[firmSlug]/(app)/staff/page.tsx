@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useProjectStore } from "@/lib/store/project.store";
+import { useTasks } from "@/hooks/useTasks";
+import { useStaff, useAddStaff, useUpdateStaff } from "@/hooks/useStaff";
 import { useTaskStore } from "@/lib/store/task.store";
-import { getStaffWithAttendance, getTeamLeadStaffWithAttendance, addStaffMember, suspendStaffMember, unsuspendStaffMember, changeStaffPassword } from "@/app/actions/staff.actions";
+
 import { SkeletonCard } from "@/components/shared/Skeleton";
 import { Avatar } from "@/components/shared/Avatar";
 import { useRouter, useParams } from "next/navigation";
@@ -12,7 +14,7 @@ import { Search, Users, Clock, Coffee, CheckCircle2, LogOut, UserX, LayoutGrid, 
 import { format } from "date-fns";
 import { toast } from "@/lib/store/toast.store";
 
-type StaffWithAttendance = Awaited<ReturnType<typeof getStaffWithAttendance>>;
+type StaffWithAttendance = any[];
 
 function formatMinutes(mins: number) {
   const h = Math.floor(mins / 60);
@@ -77,10 +79,13 @@ export default function StaffPage() {
   const params = useParams<{ firmSlug: string }>();
   const router = useRouter();
   const { user, firm } = useAuthStore();
-  const { projects } = useProjectStore();
-  const { tasks } = useTaskStore();
-
-  const [staff, setStaff] = useState<StaffWithAttendance>([]);
+  const { data: tasks = [] } = useTasks(firm?.id || "");
+  const { data: staff = [], isLoading } = useStaff(firm?.id || "");
+  const addStaffMut = useAddStaff(firm?.id || "");
+  const updateStaffMut = useUpdateStaff(firm?.id || "");
+    const { projects } = useProjectStore();
+  
+  
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -106,11 +111,7 @@ export default function StaffPage() {
     if (!user || !firm) return;
     try {
       if (isAdmin) {
-        const data = await getStaffWithAttendance(firm.id, user.email);
-        setStaff(data);
       } else if (isTeamLead) {
-        const data = await getTeamLeadStaffWithAttendance(user.id, user.email);
-        setStaff(data as unknown as StaffWithAttendance);
       }
     } finally {
       setLoading(false);
@@ -118,7 +119,7 @@ export default function StaffPage() {
   }, [user, firm, isAdmin, isTeamLead]);
 
   useEffect(() => {
-    load();
+    
     // Auto-refresh every 30 seconds to update live status
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
@@ -143,11 +144,11 @@ export default function StaffPage() {
     }
     setActionLoading(true);
     try {
-      await addStaffMember({ ...addForm, firmId: firm?.id || "" });
+      await addStaffMut.mutateAsync({ ...addForm, firmId: firm?.id || "" });
       toast(`${addForm.name} added successfully`, "success");
       setShowAddModal(false);
       setAddForm({ name: "", email: "", password: "", role: "staff", designation: "", phone: "" });
-      load();
+      
     } catch (e: any) {
       toast(e.message || "Failed to add staff", "error");
     } finally { setActionLoading(false); }
@@ -158,14 +159,14 @@ export default function StaffPage() {
     setActionLoading(true);
     try {
       if (showSuspendModal.status === "active") {
-        await suspendStaffMember(showSuspendModal.id);
+        await updateStaffMut.mutateAsync({ staffId: showSuspendModal.id, data: { action: "suspend" } });
         toast(`${showSuspendModal.name} has been suspended`, "success");
       } else {
-        await unsuspendStaffMember(showSuspendModal.id);
+        await updateStaffMut.mutateAsync({ staffId: showSuspendModal.id, data: { action: "unsuspend" } });
         toast(`${showSuspendModal.name} has been reinstated`, "success");
       }
       setShowSuspendModal(null);
-      load();
+      
     } catch (e: any) {
       toast(e.message || "Action failed", "error");
     } finally { setActionLoading(false); }
@@ -176,7 +177,7 @@ export default function StaffPage() {
     if (newPassword.length < 6) { toast("Password must be at least 6 characters", "error"); return; }
     setActionLoading(true);
     try {
-      await changeStaffPassword(showPasswordModal.id, newPassword);
+      await updateStaffMut.mutateAsync({ staffId: showPasswordModal.id, data: { action: "password", password: newPassword } });
       toast(`Password changed for ${showPasswordModal.name}`, "success");
       setShowPasswordModal(null);
       setNewPassword("");
@@ -277,7 +278,7 @@ export default function StaffPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <SkeletonCard count={4} height={130} />
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60, color: "var(--color-text-muted)" }}>
@@ -673,4 +674,6 @@ function StaffCard({
     </div>
   );
 }
+
+
 

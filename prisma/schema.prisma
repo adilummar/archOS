@@ -184,6 +184,7 @@ model Task {
   status         String        @default("todo") // todo, in_progress, review, approved, done, blocked
   priority       String        @default("normal") // low, normal, high
   dueDate        DateTime?
+    startedAt      DateTime?
   startDate      DateTime?
   completedAt    DateTime?
   approvalStatus String? // pending, approved, revision_requested, rejected

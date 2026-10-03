@@ -59,7 +59,7 @@ const STATUS_OPTIONS: { value: "all" | TaskStatus; label: string }[] = [
   { value: "all", label: "All" },
   { value: "todo", label: "To Do" },
   { value: "in_progress", label: "In Progress" },
-  { value: "review", label: "Review" },
+  { value: "submitted_for_review", label: "Pending Review" }, { value: "review", label: "Review" },
   { value: "approved", label: "Approved" },
   { value: "done", label: "Done" },
   { value: "blocked", label: "Blocked" },
@@ -68,7 +68,7 @@ const STATUS_OPTIONS: { value: "all" | TaskStatus; label: string }[] = [
 const KANBAN_COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: "todo", label: "To Do", color: "var(--color-text-muted)" },
   { id: "in_progress", label: "In Progress", color: "var(--color-info, #3b82f6)" },
-  { id: "review", label: "Review", color: "var(--color-warning)" },
+  { id: "submitted_for_review", label: "Submitted for Review", color: "var(--color-warning)" }, { id: "review", label: "Review", color: "var(--color-warning)" },
   { id: "approved", label: "Approved", color: "var(--color-success)" },
   { id: "done", label: "Done", color: "var(--color-success)" },
   { id: "blocked", label: "Blocked", color: "var(--color-destructive)" },
@@ -242,13 +242,13 @@ function KanbanColumn({
 export default function TasksPage() {
   const params = useParams<{ firmSlug: string }>();
   const router = useRouter();
-  const { tasks, setTaskStatus } = useTaskStore();
-  const { projects } = useProjectStore();
+    const { projects } = useProjectStore();
   const { user, firm } = useAuthStore();
-  const { users } = useFirmStore();
+  const { data: tasks = [], isLoading, error } = useTasks(firm?.id || "");
+  const updateTaskMut = useUpdateTask(firm?.id || "", user?.id || "");
+      const { users } = useFirmStore();
 
-  const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"list" | "kanban">("list");
+    const [view, setView] = useState<"list" | "kanban">("list");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | TaskStatus>("all");
   const [priorityFilter, setPriorityFilter] = useState<"all" | Priority>("all");
@@ -270,8 +270,8 @@ export default function TasksPage() {
   );
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(t);
+    
+    
   }, []);
 
   const firmProjects = useMemo(
@@ -308,7 +308,7 @@ export default function TasksPage() {
     else if (user.role === "staff") {
       result = result.filter(t =>
         t.assigneeId === user.id &&
-        ["active", "todo", "assigned", "in_progress", "revision_requested"].includes(t.status)
+        ["active", "todo", "assigned", "in_progress", "revision_requested", "submitted_for_review", "review"].includes(t.status)
       );
     }
     // Admin: see everything — no additional filter
@@ -323,7 +323,7 @@ export default function TasksPage() {
     } else if (quickFilter === "priority") {
       result = result.filter(t => t.priority === "high");
     } else if (quickFilter === "review") {
-      result = result.filter(t => t.status === "review");
+      result = result.filter(t => ["submitted_for_review", "review"].includes(t.status));
     }
 
     if (statusFilter !== "all") {
@@ -362,13 +362,13 @@ export default function TasksPage() {
     if (!sourceTask) return;
 
     if (targetColumn && sourceTask.status !== targetColumn.id) {
-      setTaskStatus(sourceTask.id, targetColumn.id);
+      updateTaskMut.mutateAsync({ taskId: sourceTask.id, data: { status: targetColumn.id } });
       toast(`Moved to ${targetColumn.label}`, "success");
     } else {
       // Dropped on another card — find which column it's in
       const overTask = filteredTasks.find((t) => t.id === over.id);
       if (overTask && sourceTask.status !== overTask.status) {
-        setTaskStatus(sourceTask.id, overTask.status);
+        updateTaskMut.mutateAsync({ taskId: sourceTask.id, data: { status: overTask.status } });
         const col = KANBAN_COLUMNS.find((c) => c.id === overTask.status);
         toast(`Moved to ${col?.label ?? overTask.status}`, "success");
       }
@@ -389,7 +389,7 @@ export default function TasksPage() {
     cursor: "pointer",
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ width: 200, height: 32, background: "var(--color-bg-card)", borderRadius: "var(--radius-md)" }} />
@@ -772,6 +772,10 @@ export default function TasksPage() {
     </>
   );
 }
+
+
+
+
 
 
 

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useProjectStore } from "@/lib/store/project.store";
 import { useProjects, useDeleteProject } from "@/hooks/useProjects";
+import { useTasks } from "@/hooks/useTasks";
 import { useTaskStore, projectCompletion } from "@/lib/store/task.store";
 import { useFirmStore } from "@/lib/store/firm.store";
 import { useAuthStore } from "@/lib/store/auth.store";
@@ -48,11 +49,11 @@ export default function ProjectsPage() {
   const firmSlug = params?.firmSlug ?? "demo";
 
   const { user, firm } = useAuthStore();
+  const { data: tasks = [] } = useTasks(firm?.id || "");
   const { projects: uiProjects } = useProjectStore();
-  const { data: projects = [] } = useProjects(firm?.id || "");
+  const { data: projects = [], isLoading, error } = useProjects(firm?.id || "");
   const deleteProjectMut = useDeleteProject(firm?.id || "");
   const deleteProject = (id: string) => deleteProjectMut.mutateAsync(id);
-  const { tasks } = useTaskStore();
   const { users } = useFirmStore();
   
   const isAdmin = user?.role === "admin" || user?.role === "team_lead";

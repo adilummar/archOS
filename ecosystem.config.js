@@ -7,8 +7,9 @@ module.exports = {
       cwd: '/home/adil/archOS',
       env: {
         NODE_ENV: 'production',
-        REQUIRE_HTTPS: 'false',
+        REQUIRE_HTTPS: 'true',
       },
     },
   ],
 };
+

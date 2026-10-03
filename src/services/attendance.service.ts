@@ -61,7 +61,7 @@ export async function getTodaySession(ctx: AuthContext, userId: string, email?: 
         if (!currentUser) throw new Error("Unauthorized");
 
         // Resolve to real DB user ID first
-        const realUserId = await resolveUserId(userId, email);
+        const realUserId = ctx.userId;
         if (!realUserId) return null;
         return tx.attendanceSession.findUnique({
           where: {
@@ -100,6 +100,7 @@ export async function checkIn(ctx: AuthContext, data: {
     return withAuthTx(ctx, async tx => {
       return withAuthTx(ctx, async tx => {
         const authSession = await getSession();
+        if (!data.taskId || !data.projectId) { throw new Error("A task and project must be selected to check in."); }
         if (!ctx.userId) throw new Error("Unauthorized");
         const currentUser = await tx.user.findUnique({
           where: {
@@ -114,7 +115,7 @@ export async function checkIn(ctx: AuthContext, data: {
         if (!currentUser) throw new Error("Unauthorized");
 
         // Resolve to real PostgreSQL user ID (handles demo seed ID mismatch)
-        const realUserId = await resolveUserId(data.userId, data.email);
+        const realUserId = ctx.userId;
         if (!realUserId) {
           throw new Error(`User not found in database. userId=${data.userId}, email=${data.email}`);
         }
@@ -223,6 +224,7 @@ export async function switchTask(ctx: AuthContext, data: {
           }
         });
         if (!session) throw new Error("Session not found");
+        if (session.userId !== ctx.userId && ctx.role !== 'admin') throw new Error("Unauthorized");
         const now = new Date();
 
         // Close the current open task segment
@@ -328,6 +330,7 @@ export async function takeBreak(ctx: AuthContext, sessionId: string) {
           }
         });
         if (!session) throw new Error("Session not found");
+        if (session.userId !== ctx.userId && ctx.role !== 'admin') throw new Error("Unauthorized");
 
         // Close current task segment (pause it — will resume later)
         const currentSegment = session.taskSegments[0];
@@ -401,6 +404,7 @@ export async function resumeWork(ctx: AuthContext, sessionId: string) {
           }
         });
         if (!session) throw new Error("Session not found");
+        if (session.userId !== ctx.userId && ctx.role !== 'admin') throw new Error("Unauthorized");
 
         // Close the open break record
         const openBreak = session.breakRecords[0];
@@ -474,6 +478,7 @@ export async function checkOut(ctx: AuthContext, sessionId: string) {
           }
         });
         if (!session) throw new Error("Session not found");
+        if (session.userId !== ctx.userId && ctx.role !== 'admin') throw new Error("Unauthorized");
 
         // Use IDs from the DB session record — these are always correct
         const realFirmId = session.firmId;
@@ -701,6 +706,45 @@ export async function getTaskTimeBreakdown(ctx: AuthContext, sessionId: string) 
         return Array.from(breakdown.values());
       });
     });
+  });
+}
+
+
+
+// STOP COUNTING
+export async function stopCounting(ctx: AuthContext, sessionId: string) {
+  return withAuthTx(ctx, async tx => {
+    if (!ctx.userId) throw new Error("Unauthorized");
+    const session = await tx.attendanceSession.findUnique({
+      where: { id: sessionId },
+      include: { taskSegments: { orderBy: { startTime: 'desc' }, take: 1 } }
+    });
+    if (!session) throw new Error("Session not found");
+        if (session.userId !== ctx.userId && ctx.role !== 'admin') throw new Error("Unauthorized");
+    if (session.userId !== ctx.userId) throw new Error("Unauthorized");
+
+    const now = new Date();
+    const currentSegment = session.taskSegments.find((s: any) => !s.endTime);
+
+    if (currentSegment) {
+      const minutesBetween = (start: Date, end: Date) => Math.floor((end.getTime() - start.getTime()) / 60000);
+      await tx.taskTimeSegment.update({
+        where: { id: currentSegment.id },
+        data: {
+          endTime: now,
+          durationMinutes: minutesBetween(new Date(currentSegment.startTime), now)
+        }
+      });
+    }
+
+    const updated = await tx.attendanceSession.update({
+      where: { id: sessionId },
+      data: {
+        currentProjectId: null,
+        currentTaskId: null,
+      },
+    });
+    return updated;
   });
 }
 

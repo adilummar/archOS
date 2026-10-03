@@ -1,13 +1,16 @@
 "use server";
 import { getSession } from "@/lib/session";
 import { getAuthContext } from "@/services/auth.service";
+import { requireFeature } from "@/services/feature.service";
 import { revalidatePath } from "next/cache";
 import * as Service from "@/services/user.service";
 
 async function getCtx() {
   const session = await getSession();
   if (!session.userId) throw new Error("Unauthorized");
-  return getAuthContext(session.userId);
+  const ctx = await getAuthContext(session.userId);
+  await requireFeature(ctx, "STAFF");
+  return ctx;
 }
 
 export async function getStaff(firmId: string) {

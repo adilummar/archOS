@@ -21,17 +21,26 @@ export async function requirePlatformAuth() {
 export const PlatformService = {
   // FIRM PROVISIONING
   async createFirmWithAdmin(firmData: any, adminEmail: string, adminName: string) {
-    // Generate a unique URL slug
-    let baseSlug = firmData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
-    if (!baseSlug) baseSlug = "firm";
+    let finalSlug = firmData.slug;
     
-    let finalSlug = baseSlug;
-    let counter = 1;
-    while (true) {
+    if (!finalSlug) {
+      // Generate a unique URL slug
+      let baseSlug = firmData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+      if (!baseSlug) baseSlug = "firm";
+      
+      finalSlug = baseSlug;
+      let counter = 1;
+      while (true) {
+        const existing = await platformPrisma.firm.findUnique({ where: { slug: finalSlug } });
+        if (!existing) break;
+        finalSlug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+    } else {
       const existing = await platformPrisma.firm.findUnique({ where: { slug: finalSlug } });
-      if (!existing) break;
-      finalSlug = `${baseSlug}-${counter}`;
-      counter++;
+      if (existing) {
+        throw new Error("DUPLICATE_FIRM_SLUG");
+      }
     }
 
     // Atomic transaction for provisioning
@@ -53,9 +62,7 @@ export const PlatformService = {
           planType: firmData.planType || "starter",
           status: "ACTIVE",
           onboardingState: "NOT_STARTED",
-          enabledFeatures: (firmData.planType === "professional" || firmData.planType === "enterprise")
-            ? ["DASHBOARD", "PROJECTS", "TASKS", "STAFF", "ATTENDANCE", "CRM", "FINANCE", "DOCUMENTS", "RFI", "MEETINGS", "LEAVE", "TIME", "VARIATION_ORDERS"]
-            : ["DASHBOARD", "PROJECTS", "TASKS", "STAFF", "ATTENDANCE"]
+          enabledFeatures: ["DASHBOARD", "PROJECTS", "TASKS", "STAFF", "ATTENDANCE"]
         }
       });
 
@@ -98,17 +105,37 @@ export const PlatformService = {
   },
 
   async updateFirm(id: string, data: any) {
-    // If planType is being updated, recalculate enabledFeatures
-    if (data.planType) {
-      data.enabledFeatures = (data.planType === "professional" || data.planType === "enterprise")
-        ? ["DASHBOARD", "PROJECTS", "TASKS", "STAFF", "ATTENDANCE", "CRM", "FINANCE", "DOCUMENTS", "RFI", "MEETINGS", "LEAVE", "TIME", "VARIATION_ORDERS"]
-        : ["DASHBOARD", "PROJECTS", "TASKS", "STAFF", "ATTENDANCE"];
-    }
-      
+    // Feature entitlements are now managed independently from planType
     return platformPrisma.firm.update({
       where: { id },
       data
     });
+  },
+
+  async updateFirmFeatures(id: string, enabledFeatures: string[], adminId: string) {
+    const firm = await platformPrisma.firm.findUnique({ where: { id } });
+    if (!firm) throw new Error("Not found");
+
+    const oldFeatures = firm.enabledFeatures.join(", ");
+    const newFeatures = enabledFeatures.join(", ");
+
+    const updatedFirm = await platformPrisma.firm.update({
+      where: { id },
+      data: { enabledFeatures }
+    });
+
+    await platformPrisma.activityLog.create({
+      data: {
+        firmId: id,
+        userId: adminId, // Uses Platform Admin ID
+        entity: "firm",
+        entityId: id,
+        action: "updated_features",
+        description: `PlatformAdmin updated features from [${oldFeatures}] to [${newFeatures}]`
+      }
+    });
+
+    return updatedFirm;
   },
 
   async deleteFirm(id: string) {

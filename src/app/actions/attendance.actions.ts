@@ -10,12 +10,14 @@ async function getCtx() {
   return getAuthContext(session.userId);
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getTodaySession(userId: string, email?: string) {
   const ctx = await getCtx();
   const result = await Service.getTodaySession(ctx, userId, email);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function checkIn(data: {
   userId: string;
   email?: string;       // optional fallback for ID resolution
@@ -28,6 +30,7 @@ export async function checkIn(data: {
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function switchTask(data: {
   sessionId: string;
   firmId: string;
@@ -41,36 +44,42 @@ export async function switchTask(data: {
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function takeBreak(sessionId: string) {
   const ctx = await getCtx();
   const result = await Service.takeBreak(ctx, sessionId);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function resumeWork(sessionId: string) {
   const ctx = await getCtx();
   const result = await Service.resumeWork(ctx, sessionId);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function checkOut(sessionId: string) {
   const ctx = await getCtx();
   const result = await Service.checkOut(ctx, sessionId);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getAttendanceHistory(userId: string, limit = 30) {
   const ctx = await getCtx();
   const result = await Service.getAttendanceHistory(ctx, userId, limit = 30);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getFirmAttendance(firmId: string, date?: string) {
   const ctx = await getCtx();
   const result = await Service.getFirmAttendance(ctx, firmId, date);
   return result;
 }
 
+/** @deprecated Migrated to TanStack Query */
 export async function getTaskTimeBreakdown(sessionId: string) {
   const ctx = await getCtx();
   const result = await Service.getTaskTimeBreakdown(ctx, sessionId);

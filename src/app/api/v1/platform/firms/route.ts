@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const firm = await PlatformService.createFirmWithAdmin(
-      { name: body.name, address: body.address, phone: body.phone, email: body.email },
+      { name: body.name, slug: body.slug, address: body.address, phone: body.phone, email: body.email },
       body.adminEmail,
       body.adminName
     );
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     if (err.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     if (err.message === "DUPLICATE_ADMIN_EMAIL") return NextResponse.json({ error: "Admin email already in use" }, { status: 409 });
+    if (err.message === "DUPLICATE_FIRM_SLUG") return NextResponse.json({ error: "Firm slug already in use" }, { status: 409 });
     return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
   }
 }

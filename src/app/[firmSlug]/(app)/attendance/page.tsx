@@ -4,18 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useProjectStore } from "@/lib/store/project.store";
+import { useTasks } from "@/hooks/useTasks";
+import { useMyAttendance, useAttendanceHistory, useTaskTimeBreakdown, useAttendanceMutations } from "@/hooks/useAttendance";
 import { useTaskStore } from "@/lib/store/task.store";
-import {
-  getTodaySession,
-  checkIn,
-  switchTask,
-  takeBreak,
-  resumeWork,
-  checkOut,
-  getAttendanceHistory,
-  getTaskTimeBreakdown,
-} from "@/app/actions/attendance.actions";
-import { getTasksByUser } from "@/app/actions/task.actions";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SkeletonCard } from "@/components/shared/Skeleton";
 import { toast } from "@/lib/store/toast.store";
@@ -32,8 +23,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-type Session = Awaited<ReturnType<typeof getTodaySession>>;
-type History = Awaited<ReturnType<typeof getAttendanceHistory>>;
+type Session = any;
+type History = any[];
 
 function formatMinutes(mins: number) {
   const h = Math.floor(mins / 60);
@@ -64,81 +55,30 @@ function LiveTimer({ startTime }: { startTime: Date }) {
 }
 
 export default function AttendancePage() {
+  const router = useRouter();
   const params = useParams<{ firmSlug: string }>();
   const { user, firm } = useAuthStore();
   const { projects } = useProjectStore();
-
-  const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<Session>(null);
-  const [history, setHistory] = useState<History>([]);
-  const [taskBreakdown, setTaskBreakdown] = useState<
-    Array<{ taskId: string; projectId: string; totalMinutes: number }>
-  >([]);
-
-  // Tasks loaded directly from DB (keyed by projectId)
-  const [dbTasks, setDbTasks] = useState<
-    Array<{ id: string; title: string; projectId: string; status: string; assigneeId: string | null }>
-  >([]);
-
-  // Check-in form state
-  const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [selectedTaskId, setSelectedTaskId] = useState("");
-
-  // Switch task form state
-  const [switching, setSwitching] = useState(false);
-  const [switchProjectId, setSwitchProjectId] = useState("");
-  const [switchTaskId, setSwitchTaskId] = useState("");
+  const { data: tasks = [] } = useTasks(firm?.id || "");
+  const { data: session, isLoading: sessionLoading } = useMyAttendance(firm?.id || "", user?.id || "");
+  const { data: history = [] } = useAttendanceHistory(firm?.id || "", user?.id || "");
+  const { data: taskBreakdown = [] } = useTaskTimeBreakdown(session?.id || "");
+  const muts = useAttendanceMutations(firm?.id || "", user?.id || "");
+  const loading = sessionLoading;
+  
+  const dbTasks = tasks;
+  const setDbTasks = () => {};
   const [markDone, setMarkDone] = useState(false);
+  const firmProjects = projects;
+  const tasksForProject = (pid: string) => tasks.filter((t: any) => t.projectId === pid);
+  const setLoading = (v: boolean) => {};
 
   const [submitting, setSubmitting] = useState(false);
-
-  const firmProjects = projects.filter(
-    (p) =>
-      p.status === "active" &&
-      (user?.role === "admin" ||
-        user?.role === "team_lead" ||
-        p.staffIds.includes(user?.id ?? "") ||
-        p.teamLeadId === user?.id)
-  );
-
-  // Tasks for a given project — uses DB data directly (no Zustand ID mismatch)
-  const tasksForProject = (projectId: string) =>
-    dbTasks.filter(
-      (t) =>
-        t.projectId === projectId &&
-        t.status !== "done" &&
-        t.status !== "approved"
-    );
-
-  const load = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      // Resolve real user + firm IDs server-side using email
-      const [s, h] = await Promise.all([
-        getTodaySession(user.id, user.email),
-        getAttendanceHistory(user.id, 14),
-      ]);
-      setSession(s);
-      setHistory(h);
-      if (s) {
-        const breakdown = await getTaskTimeBreakdown(s.id);
-        setTaskBreakdown(breakdown);
-      }
-
-      // Load tasks directly from DB using user email for safe ID resolution
-      const userTasks = await getTasksByUser(user.id, firm?.id ?? "", user.email);
-      setDbTasks(userTasks as typeof dbTasks);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  if (!user || !firm) return null;
+  const [switching, setSwitching] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
+  const [switchProjectId, setSwitchProjectId] = useState<string>("");
+  const [switchTaskId, setSwitchTaskId] = useState<string>("");if (!user || !firm) return null;
 
   // ── HANDLERS ──────────────────────────────────────────────────────────────
 
@@ -149,15 +89,14 @@ export default function AttendancePage() {
     }
     setSubmitting(true);
     try {
-      const s = await checkIn({
+      await muts.checkIn.mutateAsync({
         userId: user.id,
         email: user.email,        // fallback for ID resolution
         firmId: firm.id,
         projectId: selectedProjectId,
         taskId: selectedTaskId,
       });
-      setSession(s);
-      toast("Checked in! Have a productive day 🚀", "success");
+            toast("Checked in! Have a productive day 🚀", "success");
     } finally {
       setSubmitting(false);
     }
@@ -170,18 +109,8 @@ export default function AttendancePage() {
     }
     setSubmitting(true);
     try {
-      const s = await switchTask({
-        sessionId: session.id,
-        firmId: firm.id,
-        userId: user.id,
-        newProjectId: switchProjectId,
-        newTaskId: switchTaskId,
-        markCurrentTaskDone: markDone,
-      });
-      setSession(s);
-      const breakdown = await getTaskTimeBreakdown(s.id);
-      setTaskBreakdown(breakdown);
-      setSwitching(false);
+      await muts.switchTask.mutateAsync({ sessionId: session.id, projectId: selectedProjectId, taskId: selectedTaskId });
+                  setSwitching(false);
       setSwitchProjectId("");
       setSwitchTaskId("");
       setMarkDone(false);
@@ -198,9 +127,8 @@ export default function AttendancePage() {
     if (!session) return;
     setSubmitting(true);
     try {
-      const s = await takeBreak(session.id);
-      setSession(s);
-      toast("Break started. Rest up! ☕", "default");
+      await muts.startBreak.mutateAsync({ sessionId: session.id, type: "coffee" });
+            toast("Break started. Rest up! ☕", "default");
     } finally {
       setSubmitting(false);
     }
@@ -210,9 +138,8 @@ export default function AttendancePage() {
     if (!session) return;
     setSubmitting(true);
     try {
-      const s = await resumeWork(session.id);
-      setSession(s);
-      toast("Welcome back! Timer resumed.", "success");
+      await muts.endBreak.mutateAsync({ sessionId: session.id });
+            toast("Welcome back! Timer resumed.", "success");
     } finally {
       setSubmitting(false);
     }
@@ -222,12 +149,9 @@ export default function AttendancePage() {
     if (!session) return;
     setSubmitting(true);
     try {
-      const s = await checkOut(session.id); // IDs resolved server-side from session record
-      setSession(s);
-      const breakdown = await getTaskTimeBreakdown(s.id);
-      setTaskBreakdown(breakdown);
-      toast(
-        `Checked out! Total work: ${formatMinutes(s.totalWorkMinutes)}`,
+      await muts.checkOut.mutateAsync({ sessionId: session.id }); // IDs resolved server-side from session record
+                  toast(
+        `Checked out! Total work: ${formatMinutes(session.totalWorkMinutes)}`,
         "success"
       );
     } finally {
@@ -531,7 +455,7 @@ export default function AttendancePage() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
-                    Work: <strong>{formatMinutes(s.totalWorkMinutes)}</strong>
+                    Work: <strong>{formatMinutes(session.totalWorkMinutes)}</strong>
                   </span>
                   {s.totalBreakMinutes > 0 && (
                     <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
@@ -652,3 +576,8 @@ const outlineBtn: React.CSSProperties = {
   fontWeight: 500,
   cursor: "pointer",
 };
+
+
+
+
+

@@ -17,7 +17,7 @@ import { useProjectStore } from "../../lib/store/project.store";
 import { Avatar } from "../shared/Avatar";
 import { Plus, X } from "lucide-react";
 import type { Project, ProjectStage, TemplateStage } from "../../lib/store/types";
-import { instantiateProjectFromTemplate, createClient } from "@/app/actions/project.actions";
+import { useInstantiateProject, useCreateClient } from "@/hooks/useProjects";
 
 interface Props {
   open: boolean;
@@ -55,6 +55,9 @@ export function NewProjectDrawer({ open, onClose }: Props) {
   const { user, firm } = useAuthStore();
   const { users, clients, contractors, templates } = useFirmStore();
   const { addProject } = useProjectStore();
+
+  const instantiateProjectMut = useInstantiateProject(firm?.id || "");
+  const createClientMut = useCreateClient(firm?.id || "");
 
   const firmClients = useMemo(
     () => clients.filter((c) => c.firmId === firm?.id),
@@ -135,8 +138,7 @@ export function NewProjectDrawer({ open, onClose }: Props) {
 
       if (isNewClient) {
         // Create client in DB first
-        const newClientRecord = await createClient({
-          firmId: firm.id,
+        const newClientRecord = await createClientMut.mutateAsync({
           name: newClientName.trim(),
           email: newClientEmail.trim() || "no-email@example.com",
         });
@@ -155,8 +157,7 @@ export function NewProjectDrawer({ open, onClose }: Props) {
         finalClientId = newClientRecord.id;
         finalClientName = newClientRecord.name;
       }
-      const project = await instantiateProjectFromTemplate({
-        firmId: firm.id,
+      const project = await instantiateProjectMut.mutateAsync({
         templateId,
         name: name.trim(),
         clientId: finalClientId,
@@ -165,8 +166,8 @@ export function NewProjectDrawer({ open, onClose }: Props) {
         staffIds,
         location: location.trim(),
         description: "",
-        startDate: startDate ? new Date(startDate) : undefined,
-        expectedEndDate: expectedEndDate ? new Date(expectedEndDate) : undefined,
+        startDate: startDate ? new Date(startDate).toISOString() : undefined,
+        expectedEndDate: expectedEndDate ? new Date(expectedEndDate).toISOString() : undefined,
         feeAgreed: feeAgreed ? Number(feeAgreed) : undefined,
       });
 

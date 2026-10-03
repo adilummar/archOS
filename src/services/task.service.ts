@@ -76,6 +76,7 @@ export async function getTasksByUser(ctx: AuthContext, userId: string, firmId: s
 }
 
 export async function createTask(ctx: AuthContext, data: any) {
+  if (ctx.role === 'staff') throw new Error('Unauthorized: Staff cannot create tasks');
   return withAuthTx(ctx, async (tx) => {
     const task = await tx.task.create({ data });
     await tx.activityLog.create({
@@ -95,6 +96,9 @@ export async function createTask(ctx: AuthContext, data: any) {
 
 export async function updateTask(ctx: AuthContext, taskId: string, data: any, firmId: string, actorId: string) {
   return withAuthTx(ctx, async (tx) => {
+    const existing = await tx.task.findUnique({ where: { id: taskId } });
+    if (!existing) throw new Error('Task not found');
+    if (ctx.role === 'staff' && existing.assigneeId !== ctx.userId) throw new Error('Unauthorized');
     // Convert date-only strings (YYYY-MM-DD) to full ISO DateTime for Prisma
     const updateData = { ...data };
     if (updateData.dueDate && typeof updateData.dueDate === "string" && updateData.dueDate.length === 10) {
@@ -117,6 +121,7 @@ export async function updateTask(ctx: AuthContext, taskId: string, data: any, fi
 }
 
 export async function deleteTask(ctx: AuthContext, taskId: string, firmId: string, actorId: string) {
+  if (ctx.role !== 'admin' && ctx.role !== 'team_lead') throw new Error('Unauthorized: Staff cannot delete tasks');
   return withAuthTx(ctx, async (tx) => {
     const existing = await tx.task.findUnique({ where: { id: taskId } });
     await tx.task.delete({ where: { id: taskId } });
@@ -277,7 +282,7 @@ export async function getStaffAssignedTasks(ctx: AuthContext, staffId: string) {
     return tx.task.findMany({
       where: {
         assigneeId: staffId,
-        status: { in: ['active', 'todo', 'assigned', 'in_progress', 'revision_requested'] }
+        status: { in: ['active', 'todo', 'assigned', 'in_progress', 'revision_requested', 'submitted_for_review', 'review'] }
       },
       include: {
         project: { select: { id: true, name: true } },
@@ -289,23 +294,28 @@ export async function getStaffAssignedTasks(ctx: AuthContext, staffId: string) {
   });
 }
 
-export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate: Date, assigneeId?: string) {
+export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate: Date | null, assigneeId?: string) {
   return withAuthTx(ctx, async (tx) => {
-    const parsedDueDate = toDateTime(dueDate);
-    if (!parsedDueDate) throw new Error('Invalid due date');
+    if (dueDate && Number.isNaN(dueDate.getTime())) {
+      throw new Error('Invalid due date');
+    }
+    const parsedDueDate = dueDate ? toDateTime(dueDate) : null;
+    if (dueDate && (!parsedDueDate || Number.isNaN(parsedDueDate.getTime()))) {
+      throw new Error('Invalid due date');
+    }
     const task = await tx.task.findUnique({
       where: { id: taskId },
       include: { project: { include: { staffMembers: true } } }
     });
     
     if (!task) throw new Error('Task not found');
-    if (task.status !== 'active') throw new Error('Only active tasks can be assigned');
+    if (task.status !== 'active' && task.status !== 'todo') throw new Error('Only active or todo tasks can be assigned');
     if (task.project.teamLeadId !== ctx.userId && ctx.role !== 'admin') {
       throw new Error('Unauthorized');
     }
 
     const firm = await tx.firm.findUnique({ where: { id: task.firmId } });
-    if (firm && firm.minimumTaskLeadTimeDays > 0) {
+    if (parsedDueDate && firm && firm.minimumTaskLeadTimeDays > 0) {
       const diffMs = parsedDueDate.getTime() - Date.now();
       const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
       if (diffDays < firm.minimumTaskLeadTimeDays) {
@@ -366,7 +376,7 @@ export async function startTask(ctx: AuthContext, taskId: string) {
 
     const updatedTask = await tx.task.update({
       where: { id: taskId },
-      data: { status: 'in_progress', startDate: new Date() }
+      data: { status: 'in_progress', startedAt: new Date(), startDate: new Date() }
     });
 
     await tx.activityLog.create({
@@ -392,7 +402,7 @@ export async function submitTaskForReview(ctx: AuthContext, taskId: string) {
     if (task.assigneeId !== ctx.userId && ctx.role !== 'admin') {
       throw new Error('Unauthorized');
     }
-    if (!['active', 'todo', 'assigned', 'in_progress', 'revision_requested'].includes(task.status)) {
+    if (!['active', 'todo', 'assigned', 'in_progress', 'revision_requested', 'submitted_for_review', 'review'].includes(task.status)) {
       throw new Error('Task cannot be submitted from current state');
     }
 
@@ -421,6 +431,7 @@ export async function requestTaskRevisionSequence(ctx: AuthContext, taskId: stri
   return withAuthTx(ctx, async (tx) => {
     const task = await tx.task.findUnique({ where: { id: taskId }, include: { reviewCycles: true, project: true } });
     if (!task) throw new Error('Task not found');
+    if (!remark || remark.trim() === '') throw new Error('Remark is required for revision');
     if (task.project.teamLeadId !== ctx.userId && ctx.role !== 'admin') {
       throw new Error('Unauthorized');
     }
@@ -569,3 +580,8 @@ async function activateNextTask(ctx: AuthContext, tx: any, projectId: string) {
     });
   }
 }
+
+
+
+
+

@@ -19,6 +19,7 @@ import {
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useProjectStore } from "@/lib/store/project.store";
 import { useFirmStore } from "@/lib/store/firm.store";
+import { useTasks } from "@/hooks/useTasks";
 import { useTaskStore } from "@/lib/store/task.store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Avatar, AvatarGroup } from "@/components/shared/Avatar";
@@ -253,9 +254,9 @@ export default function ProjectDetailPage() {
   const params = useParams<{ firmSlug: string; projectId: string }>();
   const router = useRouter();
   const { user, firm } = useAuthStore();
+  const { data: tasks = [] } = useTasks(firm?.id || "");
   const { projects } = useProjectStore();
   const { users } = useFirmStore();
-  const { tasks } = useTaskStore();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [isNewMilestoneOpen, setIsNewMilestoneOpen] = useState(false);
