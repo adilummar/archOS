@@ -1,5 +1,13 @@
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO archos_app_role;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO archos_app_role;
+-- Grant privileges to archos_app_role only if it already exists
+-- (role must be pre-created by a DBA superuser; migration does not fail if absent)
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'archos_app_role') THEN
+    EXECUTE 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA archos TO archos_app_role';
+    EXECUTE 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA archos TO archos_app_role';
+  END IF;
+END
+$$;
 
 ALTER TABLE "Firm" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
