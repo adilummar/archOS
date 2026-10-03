@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Bell, Search, LogOut, ChevronDown, User } from "lucide-react";
 import { useAuthStore } from "../../lib/store/auth.store";
 import { useNotificationStore } from "../../lib/store/notification.store";
+import { clearTenantPersistedState } from "../../lib/reset-tenant-state";
 import { Avatar } from "../shared/Avatar";
 import { useState } from "react";
 
@@ -33,6 +34,7 @@ export function Topbar({ title, firmSlug, onToggleMobile }: TopbarProps & { onTo
       console.error("Logout error", err);
     }
     useAuthStore.getState().logout();
+    clearTenantPersistedState();
     window.location.href = `/${firmSlug}/login`;
   };
 

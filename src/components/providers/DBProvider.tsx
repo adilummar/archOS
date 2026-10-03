@@ -1,35 +1,37 @@
 "use client";
 
 import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store/auth.store";
-import { getFirmBySlug } from "@/app/actions/bootstrap.actions";
-import { useFirmStore } from "@/lib/store/firm.store";
-import { useProjectStore } from "@/lib/store/project.store";
-import { useTaskStore } from "@/lib/store/task.store";
 
 export function DBProvider({ firmSlug }: { firmSlug: string }) {
-  const params = useParams<{ firmSlug: string }>();
   const router = useRouter();
-  
+  const pathname = usePathname();
 
   useEffect(() => {
     async function loadFromDB() {
-      if (!firmSlug) return;
       try {
-        const firm = await getFirmBySlug(firmSlug);
-        if (!firm) return;
-
-        // Verify session
         const authRes = await fetch("/api/auth/me");
-        if (authRes.ok) {
-          const { user } = await authRes.json();
-          if (user) {
-            useAuthStore.getState().login(user as any, firm as any);
-          } else {
-            useAuthStore.getState().logout();
-            router.push('/login');
-          }
+        if (!authRes.ok) {
+          useAuthStore.getState().logout();
+          router.push(firmSlug ? `/${firmSlug}/login` : "/");
+          return;
+        }
+        const { user } = await authRes.json();
+        if (!user?.firm) {
+          useAuthStore.getState().logout();
+          router.push(firmSlug ? `/${firmSlug}/login` : "/");
+          return;
+        }
+
+        useAuthStore.getState().login(user, user.firm);
+
+        const actualSlug = user.firm.slug as string | undefined;
+        if (actualSlug && firmSlug && actualSlug !== firmSlug) {
+          const suffix = pathname.startsWith(`/${firmSlug}`)
+            ? pathname.slice(firmSlug.length + 1)
+            : "/dashboard";
+          router.replace(`/${actualSlug}${suffix || "/dashboard"}`);
         }
       } catch (error) {
         console.error("Failed to load initial data:", error);
@@ -37,9 +39,7 @@ export function DBProvider({ firmSlug }: { firmSlug: string }) {
     }
 
     loadFromDB();
-  }, [firmSlug, router]);
+  }, [firmSlug, router, pathname]);
 
   return null;
 }
-
-

@@ -10,16 +10,8 @@ export type BootstrapData = {
 export async function getFirmBySlug(ctx: AuthContext, firmSlug: string) {
   return withAuthTx(ctx, async (tx) => {
     const bySlug = await tx.firm.findUnique({ where: { slug: firmSlug } });
-    if (bySlug) return bySlug;
-
-    const firms = await tx.firm.findMany();
-    const byName = firms.find(
-      (f) => f.name.toLowerCase().replace(/\s+/g, "-") === firmSlug || f.id === firmSlug
-    );
-    if (byName) return byName;
-
-    if (firms.length === 1) return firms[0];
-    return null;
+    if (bySlug && bySlug.id === ctx.firmId) return bySlug;
+    return tx.firm.findUnique({ where: { id: ctx.firmId } });
   });
 }
 

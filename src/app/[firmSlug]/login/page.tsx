@@ -9,6 +9,7 @@ import { ToastProvider } from "@/components/shared/Toast";
 import { toast } from "@/lib/store/toast.store";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useFirmStore } from "@/lib/store/firm.store";
+import { clearTenantPersistedState } from "@/lib/reset-tenant-state";
 import type { Firm, User, Role } from "@/lib/store/types";
 
 export default function LoginPage() {
@@ -107,12 +108,17 @@ export default function LoginPage() {
         status: "active",
       };
 
+      clearTenantPersistedState();
       // Populate UI state (Zustand) — NOT used for authorization
       useAuthStore.getState().login(user, firm);
       useFirmStore.getState().addFirm(firm);
 
       toast(`Welcome back, ${dbUser.name}!`, "success");
-      router.push(`/${firmSlug}/dashboard`);
+      const destSlug = dbUser.firm.slug || firmSlug;
+      const destPage = (dbUser.firm as { onboardingState?: string }).onboardingState === "COMPLETED"
+        ? "dashboard"
+        : "onboarding";
+      window.location.assign(`/${destSlug}/${destPage}`);
     } catch {
       setError("Network error. Please check your connection.");
     } finally {

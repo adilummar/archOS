@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Create session — store ONLY userId, never password or role
+    // 5. Replace session identity — store ONLY userId, never password or role
     const cookieStore = await cookies();
     const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
     session.userId = user.id;
