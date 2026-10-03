@@ -19,26 +19,40 @@ export const PATCH = withAuth(async (ctx, req, context: any) => {
   
   let safeData: any = {};
   
+  if (data.status !== undefined) {
+    try {
+      if (data.status === 'in_progress') {
+        await TaskService.startTask(ctx, taskId);
+      } else if (data.status === 'submitted_for_review') {
+        await TaskService.submitTaskForReview(ctx, taskId);
+      } else if (data.status === 'approved') {
+        await TaskService.approveTaskSequence(ctx, taskId);
+      } else {
+        if (isAdmin || isTeamLead) {
+          safeData.status = data.status;
+        } else {
+          return NextResponse.json({ error: "Unauthorized status transition" }, { status: 403 });
+        }
+      }
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 422 });
+    }
+  }
+
   // Admin can update most things
   if (isAdmin) {
-    safeData = data; 
+    safeData = { ...data, ...safeData }; 
   } else if (isTeamLead) {
-    // Team lead can update priority, description, title, etc.
-    // They should use explicit actions for status/assignee.
     const allowed = ['title', 'description', 'priority', 'dueDate'];
     for (const key of allowed) {
       if (data[key] !== undefined) safeData[key] = data[key];
     }
   } else {
-    // Staff can ONLY update title, description, attachments (basic things). 
-    // They MUST NOT update status, assigneeId, etc.
     const allowed = ['title', 'description'];
     for (const key of allowed) {
       if (data[key] !== undefined) safeData[key] = data[key];
     }
-    
-    // Explicitly reject protected fields
-    const protectedFields = ['status', 'assigneeId', 'assignerId', 'reviewerId', 'projectId', 'stageId', 'approvalStatus', 'dueDate'];
+    const protectedFields = ['assigneeId', 'assignerId', 'reviewerId', 'projectId', 'stageId', 'approvalStatus', 'dueDate'];
     for (const p of protectedFields) {
       if (data[p] !== undefined) {
         return NextResponse.json({ error: `Unauthorized to mutate protected field: ${p}` }, { status: 403 });

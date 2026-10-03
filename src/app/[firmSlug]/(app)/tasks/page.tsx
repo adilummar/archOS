@@ -39,6 +39,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useTaskStore, projectCompletion } from "@/lib/store/task.store";
 import { useTasks, useUpdateTask } from "@/hooks/useTasks";
+import { useProjects } from "@/hooks/useProjects";
+import { useStaff } from "@/hooks/useStaff";
 import { useProjectStore } from "@/lib/store/project.store";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useFirmStore } from "@/lib/store/firm.store";
@@ -245,8 +247,11 @@ export default function TasksPage() {
     const { projects } = useProjectStore();
   const { user, firm } = useAuthStore();
   const { data: tasks = [], isLoading, error } = useTasks(firm?.id || "");
+  const { data: apiProjects = [] } = useProjects(firm?.id || "");
+  const { data: staffUsers = [] } = useStaff(firm?.id || "");
   const updateTaskMut = useUpdateTask(firm?.id || "", user?.id || "");
       const { users } = useFirmStore();
+  const directoryUsers = staffUsers.length > 0 ? staffUsers : users;
 
     const [view, setView] = useState<"list" | "kanban">("list");
   const [search, setSearch] = useState("");
@@ -274,10 +279,10 @@ export default function TasksPage() {
     
   }, []);
 
-  const firmProjects = useMemo(
-    () => projects.filter((p) => p.firmId === firm?.id && p.status === "active"),
-    [projects, firm]
-  );
+  const firmProjects = useMemo(() => {
+    const source = apiProjects.length > 0 ? apiProjects : projects;
+    return source.filter((p) => (!p.firmId || p.firmId === firm?.id) && p.status === "active");
+  }, [apiProjects, projects, firm]);
 
   const filteredTasks = useMemo(() => {
     if (!firm || !user) return [];
@@ -293,15 +298,12 @@ export default function TasksPage() {
 
     
 
-    // ── Role-based task visibility ────────────────────────────────────────────
-    // Team Lead: only see tasks that need THEIR action right now.
-    //   - "active"               → unassigned, ready to be assigned to staff
-    //   - "submitted_for_review" → staff finished, waiting for TL review/approval
-    // Everything else (future, assigned, in_progress, revision_requested) is
-    // handled by staff or is not yet actionable — hidden from the TL list.
+    // Team Lead: one current task per project (backend) plus review queue.
+    // Current includes assigned / in_progress / revision — hiding those
+    // made a successful assign look like the task vanished.
     if (user.role === "team_lead") {
       result = result.filter(t =>
-        ["active", "todo", "submitted_for_review", "review"].includes(t.status)
+        ["active", "todo", "assigned", "in_progress", "revision_requested", "submitted_for_review", "review"].includes(t.status)
       );
     }
     // Staff: only see tasks that are their personal responsibility right now.
@@ -376,7 +378,12 @@ export default function TasksPage() {
   };
 
   const getProject = (projectId: string) => firmProjects.find((p) => p.id === projectId);
-  const getAssignee = (assigneeId?: string) => users.find((u) => u.id === assigneeId);
+  const getAssignee = (task: Task) => {
+    const embedded = (task as Task & { assignee?: { id: string; name: string; avatarColor?: string } }).assignee;
+    if (embedded) return embedded;
+    return staffUsers.find((u: { id: string }) => u.id === task.assigneeId)
+      || users.find((u) => u.id === task.assigneeId);
+  };
 
   const selectStyle: React.CSSProperties = {
     background: "var(--color-bg-input)",
@@ -408,7 +415,7 @@ export default function TasksPage() {
         <StaffTasksView 
           tasks={filteredTasks} 
           projects={firmProjects} 
-          users={users} 
+          users={directoryUsers} 
           onTaskClick={setSelectedTaskId} 
         />
         {selectedTaskId && (
@@ -613,7 +620,7 @@ export default function TasksPage() {
                 <tbody>
                   {filteredTasks.map((task) => {
                     const project = getProject(task.projectId);
-                    const assignee = getAssignee(task.assigneeId);
+                    const assignee = getAssignee(task);
                     const overdue =
                       (task.dueDate ? isPast(parseISO(task.dueDate)) : false) &&
                       task.status !== "done" &&
@@ -649,7 +656,7 @@ export default function TasksPage() {
                                 Blocked{task.blockedReason ? `: ${task.blockedReason}` : ""}
                               </span>
                             )}
-                            {task.subtasks.length > 0 && (
+                            {(task.subtasks?.length ?? 0) > 0 && (
                               <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
                                 {" "}· {task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length} subtasks
                               </span>
@@ -737,13 +744,17 @@ export default function TasksPage() {
           >
             <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16 }}>
               {KANBAN_COLUMNS.map((col) => {
-                const colTasks = filteredTasks.filter((t) => t.status === col.id);
+                const colTasks = filteredTasks.filter((t) => {
+                  if (col.id === "todo") return ["todo", "active", "assigned"].includes(t.status);
+                  if (col.id === "review") return ["review", "submitted_for_review", "revision_requested"].includes(t.status);
+                  return t.status === col.id;
+                });
                 return (
                   <KanbanColumn
                     key={col.id}
                     col={col}
                     tasks={colTasks}
-                    users={users}
+                    users={directoryUsers}
                     projects={firmProjects}
                     onTaskClick={setSelectedTaskId}
                   />

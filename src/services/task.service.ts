@@ -48,6 +48,7 @@ export async function getAllTasksByFirm(ctx: AuthContext, firmId: string) {
     return tx.task.findMany({
       where,
       include: {
+        assignee: { select: { id: true, name: true, avatarInitials: true, avatarColor: true } },
         subtasks: { orderBy: { createdAt: "asc" } },
         reviewCycles: true,
       },
@@ -245,17 +246,26 @@ export async function toggleSubtask(ctx: AuthContext, subtaskId: string, complet
 
 export async function getTeamLeadActiveTasks(ctx: AuthContext, teamLeadId: string) {
   return withAuthTx(ctx, async (tx) => {
-    return tx.task.findMany({
+    const tasks = await tx.task.findMany({
       where: {
-        status: { in: ['active', 'todo'] },
+        status: { in: ['active', 'todo', 'assigned', 'in_progress', 'revision_requested', 'submitted_for_review', 'review'] },
         project: { teamLeadId }
       },
       include: {
         project: { select: { id: true, name: true, staffMembers: { include: { user: { select: { id: true, name: true } } } } } },
-        stage: { select: { id: true, name: true } },
+        stage: { select: { id: true, name: true, order: true } },
+        assignee: { select: { id: true, name: true, avatarInitials: true, avatarColor: true } },
+        subtasks: { orderBy: { createdAt: "asc" } },
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: [{ stage: { order: 'asc' } }, { order: 'asc' }, { createdAt: 'asc' }]
     });
+    const currentByProject = new Map<string, (typeof tasks)[number]>();
+    for (const task of tasks) {
+      if (!currentByProject.has(task.projectId)) {
+        currentByProject.set(task.projectId, task);
+      }
+    }
+    return Array.from(currentByProject.values());
   });
 }
 
@@ -270,7 +280,8 @@ export async function getTeamLeadReviewQueue(ctx: AuthContext, teamLeadId: strin
         project: { select: { id: true, name: true } },
         stage: { select: { id: true, name: true } },
         assignee: { select: { id: true, name: true, avatarInitials: true, avatarColor: true } },
-        reviewCycles: { orderBy: { createdAt: 'desc' }, take: 1 }
+        reviewCycles: { orderBy: { createdAt: 'desc' }, take: 1 },
+        subtasks: { orderBy: { createdAt: "asc" } },
       },
       orderBy: { updatedAt: 'desc' }
     });
@@ -287,14 +298,16 @@ export async function getStaffAssignedTasks(ctx: AuthContext, staffId: string) {
       include: {
         project: { select: { id: true, name: true } },
         stage: { select: { id: true, name: true } },
-        reviewCycles: { orderBy: { createdAt: 'desc' }, take: 1 }
+        assignee: { select: { id: true, name: true, avatarInitials: true, avatarColor: true } },
+        reviewCycles: { orderBy: { createdAt: 'desc' }, take: 1 },
+        subtasks: { orderBy: { createdAt: "asc" } },
       },
       orderBy: { dueDate: 'asc' }
     });
   });
 }
 
-export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate: Date | null, assigneeId?: string) {
+export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate: Date | null, assigneeId?: string, priority?: string) {
   return withAuthTx(ctx, async (tx) => {
     if (dueDate && Number.isNaN(dueDate.getTime())) {
       throw new Error('Invalid due date');
@@ -323,14 +336,17 @@ export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate
       }
     }
 
+    const projectStaff = task.project.staffMembers.filter((sm: any) => sm.userId !== task.project.teamLeadId);
     let finalAssigneeId = assigneeId;
-    if (task.project.staffMembers.length === 1) {
-       finalAssigneeId = task.project.staffMembers[0].userId;
+    if (projectStaff.length === 1) {
+       finalAssigneeId = projectStaff[0].userId;
+    } else if (projectStaff.length === 0) {
+       throw new Error('Assignee must be a project staff member');
     } else if (!finalAssigneeId) {
        throw new Error('Project has multiple staff. Assignee must be selected.');
     }
 
-    const isMember = task.project.staffMembers.some((sm: any) => sm.userId === finalAssigneeId);
+    const isMember = projectStaff.some((sm: any) => sm.userId === finalAssigneeId);
     if (!isMember) {
        throw new Error('Assignee is not a member of this project');
     }
@@ -340,7 +356,9 @@ export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate
       data: {
         status: 'assigned',
         assigneeId: finalAssigneeId,
-        dueDate: parsedDueDate
+        assignerId: ctx.userId,
+        dueDate: parsedDueDate,
+        ...(priority ? { priority } : {})
       }
     });
 
@@ -376,7 +394,10 @@ export async function startTask(ctx: AuthContext, taskId: string) {
 
     const updatedTask = await tx.task.update({
       where: { id: taskId },
-      data: { status: 'in_progress', startedAt: new Date(), startDate: new Date() }
+      data: {
+        status: 'in_progress',
+        startedAt: task.startedAt ?? new Date(),
+      }
     });
 
     await tx.activityLog.create({
@@ -427,7 +448,7 @@ export async function submitTaskForReview(ctx: AuthContext, taskId: string) {
   });
 }
 
-export async function requestTaskRevisionSequence(ctx: AuthContext, taskId: string, remark: string, newDueDate: Date) {
+export async function requestTaskRevisionSequence(ctx: AuthContext, taskId: string, remark: string, newDueDate?: Date | null) {
   return withAuthTx(ctx, async (tx) => {
     const task = await tx.task.findUnique({ where: { id: taskId }, include: { reviewCycles: true, project: true } });
     if (!task) throw new Error('Task not found');
@@ -438,8 +459,12 @@ export async function requestTaskRevisionSequence(ctx: AuthContext, taskId: stri
     if (task.status !== 'submitted_for_review') {
       throw new Error('Task is not in review');
     }
+    if (newDueDate && Number.isNaN(newDueDate.getTime())) {
+      throw new Error('Invalid due date');
+    }
 
     const revisionNumber = task.reviewCycles.length + 1;
+    const parsedNewDue = newDueDate ? toDateTime(newDueDate) : undefined;
 
     await tx.taskReviewCycle.create({
       data: {
@@ -449,7 +474,7 @@ export async function requestTaskRevisionSequence(ctx: AuthContext, taskId: stri
         remark,
         statusRequested: 'revision_requested',
         previousDueDate: task.dueDate,
-        requestedDueDate: newDueDate
+        requestedDueDate: parsedNewDue ?? null
       }
     });
 
@@ -457,7 +482,7 @@ export async function requestTaskRevisionSequence(ctx: AuthContext, taskId: stri
       where: { id: taskId },
       data: {
         status: 'revision_requested',
-        dueDate: toDateTime(newDueDate),
+        ...(parsedNewDue ? { dueDate: parsedNewDue } : {}),
         approvalStatus: 'revision_requested',
         approvalNote: remark,
         approvedById: ctx.userId

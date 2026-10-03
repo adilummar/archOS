@@ -5,7 +5,7 @@ import type { Task } from '@/lib/store/types';
 export function useTasks(firmId: string) {
   return useQuery({
     queryKey: ['tasks', firmId],
-    queryFn: () => api.get<Task[]>('//api/v1/tasks', { firmId }),
+    queryFn: () => api.get<Task[]>('/api/v1/tasks', { firmId }),
     enabled: !!firmId,
   });
 }
@@ -70,7 +70,7 @@ export function useToggleSubtask(firmId: string) {
 export function useTeamLeadActiveTasks(firmId: string) {
   return useQuery({
     queryKey: ['tasks', 'team-lead', 'active', firmId],
-    queryFn: () => api.get<Task[]>('//api/v1/tasks/team-lead', { firmId }),
+    queryFn: () => api.get<Task[]>('/api/v1/tasks/team-lead', { firmId }),
     enabled: !!firmId,
   });
 }
@@ -78,7 +78,7 @@ export function useTeamLeadActiveTasks(firmId: string) {
 export function useTeamLeadReviewQueue(firmId: string) {
   return useQuery({
     queryKey: ['tasks', 'team-lead', 'reviews', firmId],
-    queryFn: () => api.get<Task[]>('//api/v1/tasks/team-lead/reviews', { firmId }),
+    queryFn: () => api.get<Task[]>('/api/v1/tasks/team-lead/reviews', { firmId }),
     enabled: !!firmId,
   });
 }
@@ -86,7 +86,7 @@ export function useTeamLeadReviewQueue(firmId: string) {
 export function useStaffAssignedTasks(firmId: string) {
   return useQuery({
     queryKey: ['tasks', 'staff', 'assigned', firmId],
-    queryFn: () => api.get<Task[]>('//api/v1/tasks/staff', { firmId }),
+    queryFn: () => api.get<Task[]>('/api/v1/tasks/staff', { firmId }),
     enabled: !!firmId,
   });
 }
@@ -94,8 +94,8 @@ export function useStaffAssignedTasks(firmId: string) {
 export function useAssignTaskSequence(firmId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, dueDate, assigneeId }: { taskId: string, dueDate: string | null, assigneeId?: string }) => 
-      api.post<any>(`/api/v1/tasks/${taskId}/assign?firmId=${firmId}`, { dueDate, assigneeId }),
+    mutationFn: ({ taskId, dueDate, assigneeId, priority }: { taskId: string, dueDate: string | null, assigneeId?: string, priority?: string }) => 
+      api.post<any>(`/api/v1/tasks/${taskId}/assign?firmId=${firmId}`, { dueDate, assigneeId, priority }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });
 }

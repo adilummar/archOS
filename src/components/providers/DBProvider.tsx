@@ -21,7 +21,7 @@ export function DBProvider({ firmSlug }: { firmSlug: string }) {
         if (!firm) return;
 
         // Verify session
-        const authRes = await fetch("/api/v1/auth/me");
+        const authRes = await fetch("/api/auth/me");
         if (authRes.ok) {
           const { user } = await authRes.json();
           if (user) {

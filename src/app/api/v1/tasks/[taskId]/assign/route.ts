@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-utils';
 import * as TaskService from '@/services/task.service';
+import { requireFeature } from '@/services/feature.service';
 
 function parseOptionalDueDate(dueDate: unknown): Date | null {
   if (dueDate == null || dueDate === "") return null;
@@ -12,9 +13,10 @@ function parseOptionalDueDate(dueDate: unknown): Date | null {
 }
 
 export const POST = withAuth(async (ctx, req, context: any) => {
+  await requireFeature(ctx, "TASKS");
   const { taskId } = await context.params;
-  const { dueDate, assigneeId } = await req.json();
+  const { dueDate, assigneeId, priority } = await req.json();
   const parsedDate = parseOptionalDueDate(dueDate);
-  const task = await TaskService.assignActiveTask(ctx, taskId, parsedDate, assigneeId);
+  const task = await TaskService.assignActiveTask(ctx, taskId, parsedDate, assigneeId, priority);
   return NextResponse.json(task);
 });

@@ -8,12 +8,14 @@ import { useTaskStore } from "../../lib/store/task.store";
 import { useFirmStore } from "../../lib/store/firm.store";
 import { useAuthStore } from "../../lib/store/auth.store";
 import { useTasks, useUpdateTask, useDeleteTask, useAssignTaskSequence, useSubmitTaskForReviewSequence, useApproveTaskSequence, useRequestTaskRevisionSequence, useStartTaskSequence, useReviewTask, useOverrideTask, useAddSubtask, useToggleSubtask } from "@/hooks/useTasks";
+import { useProjects } from "@/hooks/useProjects";
+import { useStaff } from "@/hooks/useStaff";
 import { useProjectStore } from "../../lib/store/project.store";
 import { toast } from "../../lib/store/toast.store";
-import * as TaskActions from "@/app/actions/task.actions";
 import { useActivityStore } from "../../lib/store/activity.store";
 import { useRequestStore } from "../../lib/store/request.store";
 import { format } from "date-fns";
+import type { Task } from "@/lib/store/types";
 import {
   Plus, X, Calendar, User as UserIcon, Tag, Check,
   AlertTriangle, ChevronDown, UserCheck,
@@ -195,8 +197,12 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const overrideTaskMut = useOverrideTask(firmId);
   const addSubtaskMut = useAddSubtask(firmId);
   const toggleSubtaskMut = useToggleSubtask(firmId);
-  const users = useFirmStore((s) => s.users);
-  const projects = useProjectStore((s) => s.projects);
+  const zustandUsers = useFirmStore((s) => s.users);
+  const { data: staffUsers = [] } = useStaff(firmId);
+  const { data: apiProjects = [] } = useProjects(firmId);
+  const storeProjects = useProjectStore((s) => s.projects);
+  const users = staffUsers.length > 0 ? staffUsers : zustandUsers;
+  const projects = apiProjects.length > 0 ? apiProjects : storeProjects;
   const activities = useActivityStore((s) => s.logs);
 
   const [titleEdit, setTitleEdit] = useState(task?.title || "");
@@ -220,7 +226,8 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
   const project = projects.find((p) => p.id === task.projectId);
   const stage = project?.stages.find((s) => s.id === task.stageId);
-  const assignee = users.find((u) => u.id === task.assigneeId);
+  const assignee = (task as Task & { assignee?: { id: string; name: string; avatarColor?: string; avatarInitials?: string } }).assignee
+    || users.find((u) => u.id === task.assigneeId);
   const taskActivities = activities.filter((a) => a.entityId === task.id);
 
   const isAdminOrLead = authUser?.role === "admin" || authUser?.role === "team_lead";
@@ -229,8 +236,8 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const teamMembers = users.filter(
     (u) =>
       u.status === "active" &&
-      u.firmId === task.firmId &&
-      (project?.staffIds.includes(u.id) || project?.teamLeadId === u.id || u.role === "admin")
+      u.role === "staff" &&
+      (project?.staffIds ? project.staffIds.includes(u.id) : true)
   );
 
   const handleTitleBlur = () => {
@@ -260,18 +267,32 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
 
 
   const handleAssignActiveTask = async () => {
-    const finalAssigneeId = pendingAssigneeId || task.assigneeId || undefined;
-    const projectStaffCount = project?.staffIds?.length ?? 0;
-    if (projectStaffCount > 1 && !finalAssigneeId) {
-      toast("Please select an assignee.", "error");
+    const projectStaffIds = (project?.staffIds ?? []).filter((id: string) => id !== project?.teamLeadId);
+    const finalAssigneeId = pendingAssigneeId || (projectStaffIds.length === 1 ? projectStaffIds[0] : undefined);
+    if (projectStaffIds.length === 0) {
+      toast("Assignment Pending — Select a Staff member", "error");
+      return;
+    }
+    if (projectStaffIds.length > 1 && !finalAssigneeId) {
+      toast("Assignment Pending — Select a Staff member", "error");
       return;
     }
     setIsSaving(true);
     try {
       const parsedDate = pendingDate ? new Date(pendingDate) : null;
-      await assignTaskMut.mutateAsync({ taskId: task.id, dueDate: parsedDate ? parsedDate.toISOString() : null, assigneeId: finalAssigneeId });
+      if (pendingDate && (!parsedDate || Number.isNaN(parsedDate.getTime()))) {
+        toast("Invalid due date", "error");
+        return;
+      }
+      await assignTaskMut.mutateAsync({
+        taskId: task.id,
+        dueDate: parsedDate ? parsedDate.toISOString() : null,
+        assigneeId: finalAssigneeId,
+        priority: pendingPriority || undefined,
+      });
       toast("Task assigned successfully", "success");
       setPendingDate(null);
+      setPendingPriority(null);
       setPendingAssigneeId(null);
       onClose();
     } catch (err: any) {
@@ -284,10 +305,10 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   const handleStartWork = async () => {
     setIsSaving(true);
     try {
-      await updateTaskMut.mutateAsync({ taskId: task.id, data: { status: "in_progress" } });
+      await startTaskMut.mutateAsync({ taskId: task.id });
       toast("Task started", "success");
     } catch (err: any) {
-      toast(err.message, "error");
+      toast(err.message || "Failed to start task", "error");
     } finally {
       setIsSaving(false);
     }
@@ -381,7 +402,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
   };
 
   const handleDeleteSubtask = (subtaskId: string) => {
-    const newSubtasks = task.subtasks.filter((s) => s.id !== subtaskId);
+    const newSubtasks = (task.subtasks ?? []).filter((s) => s.id !== subtaskId);
     updateTaskMut.mutateAsync({ taskId: task.id, data: { subtasks: newSubtasks } });
   };
 
@@ -553,10 +574,11 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
         </div>
 
         {/* Apply Changes Button — active tasks can be assigned with no due date and no other edits */}
-        {!readonly && (hasPendingChanges || (isAdminOrLead && task.status === "active")) && (
+        {!readonly && (hasPendingChanges || (isAdminOrLead && ["active", "todo"].includes(task.status))) && (
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            {task.status === "active" ? (
+            {["active", "todo"].includes(task.status) ? (
               <button
+                type="button"
                 onClick={handleAssignActiveTask}
                 disabled={isSaving}
                 style={{
@@ -640,7 +662,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-muted)" }}>
               Subtasks
-              {task.subtasks.length > 0 && (
+              {(task.subtasks?.length ?? 0) > 0 && (
                 <span style={{ marginLeft: 6, color: "var(--color-text-muted)", fontWeight: 400 }}>
                   ({task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length})
                 </span>
@@ -656,7 +678,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
             )}
           </div>
 
-          {task.subtasks.map((st) => (
+          {(task.subtasks ?? []).map((st) => (
             <div
               key={st.id}
               className="group"
@@ -819,7 +841,7 @@ export function TaskDrawer({ taskId, onClose, readonly }: TaskDrawerProps) {
                 <button
                   onClick={async () => {
                     try {
-                      await requestRevisionMut.mutateAsync({ taskId: task.id, remark: "Revision required", newDueDate: new Date().toISOString() });
+                      await requestRevisionMut.mutateAsync({ taskId: task.id, remark: "Revision required", newDueDate: task.dueDate || "" });
                       toast("Revision requested", "success");
                       onClose();
                     } catch (e: any) {

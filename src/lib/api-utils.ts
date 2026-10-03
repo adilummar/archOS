@@ -32,7 +32,16 @@ export function withAuth(
       if (msg.toLowerCase().includes("not found")) {
         return NextResponse.json({ error: msg }, { status: 404 });
       }
-      if (msg.toLowerCase().includes("validation") || msg.toLowerCase().includes("required") || msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("cannot") || msg.toLowerCase().includes("must be") || msg.toLowerCase().includes("lead time")) {
+      if (
+        msg.toLowerCase().includes("validation") ||
+        msg.toLowerCase().includes("required") ||
+        msg.toLowerCase().includes("invalid") ||
+        msg.toLowerCase().includes("cannot") ||
+        msg.toLowerCase().includes("must be") ||
+        msg.toLowerCase().includes("lead time") ||
+        msg.toLowerCase().includes("not a member") ||
+        msg.toLowerCase().includes("assignee")
+      ) {
         return NextResponse.json({ error: msg }, { status: 422 });
       }
       if (error instanceof SyntaxError) {

@@ -20,6 +20,8 @@ export const PATCH = withAuth(async (ctx, req: any) => {
         name: data.name !== undefined ? data.name : undefined,
         phone: data.phone !== undefined ? data.phone : undefined,
         address: data.address !== undefined ? data.address : undefined,
+        priorityPeriodDays: data.priorityPeriodDays !== undefined ? data.priorityPeriodDays : undefined,
+        minimumTaskLeadTimeDays: data.minimumTaskLeadTimeDays !== undefined ? data.minimumTaskLeadTimeDays : undefined,
         onboardingState: firm?.onboardingState === "NOT_STARTED" ? "IN_PROGRESS" : undefined
       }
     });

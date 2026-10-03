@@ -44,6 +44,8 @@ export async function GET() {
             onboardingState: true,
             enabledFeatures: true,
             createdAt: true,
+            minimumTaskLeadTimeDays: true,
+            priorityPeriodDays: true,
           },
         },
       },
