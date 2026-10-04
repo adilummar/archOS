@@ -387,16 +387,15 @@ Notes: Phase 9 client portal complete. Moving to contractor portal.
 
 ## CURRENT STATUS
 
-Last updated: [Claude Code updates this after each session]
-Current phase: 1
-Current task: 1.1
-Last completed: —
+Last updated: 2026-10-04
+Current phase: 12 (polish / regressions)
+Current task: Client UI on Admin Edit Project
+Last completed: Ported "+ Add new client" from NewProjectDrawer into EditProjectDrawer
 Blockers: —
-Notes: —
+Notes: Admin and Team Lead share the same drawers. The missing add-client control was a New vs Edit gap, not an Admin RBAC hide.
 
 ---
 
 ## SESSION LOG
 
-[Claude Code appends to this section after each session]
-[Format: Date | Tasks completed | What was built | Any decisions made | Next task]
+2026-10-04 | Edit Project client-create UI | Added "+ Add new client" to EditProjectDrawer using existing useCreateClient → POST /api/v1/clients. No schema/RLS/auth changes. | New and Edit now both expose client creation for admin and team_lead. | Next: none for this regression.

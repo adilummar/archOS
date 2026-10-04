@@ -12,7 +12,7 @@ import { nowIso } from "../../lib/store/uid";
 import { useAuthStore } from "../../lib/store/auth.store";
 import { useFirmStore } from "../../lib/store/firm.store";
 import { useProjectStore } from "../../lib/store/project.store";
-import { useUpdateProject } from "../../hooks/useProjects";
+import { useUpdateProject, useCreateClient } from "../../hooks/useProjects";
 import { Avatar } from "../shared/Avatar";
 import { X, Plus } from "lucide-react";
 import type { Project } from "../../lib/store/types";
@@ -41,6 +41,7 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
   const { users, clients, contractors } = useFirmStore();
   const { updateProject } = useProjectStore();
   const updateProjectMutation = useUpdateProject(firm?.id || "");
+  const createClientMut = useCreateClient(firm?.id || "");
 
   const firmClients = useMemo(
     () => clients.filter((c) => c.firmId === firm?.id),
@@ -53,6 +54,9 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
 
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
+  const [isNewClient, setIsNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
   const [status, setStatus] = useState<Project["status"]>("active");
   const [feeStructure, setFeeStructure] = useState<Project["feeStructure"]>("per_stage");
   const [location, setLocation] = useState("");
@@ -72,6 +76,9 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
     if (project) {
       setName(project.name);
       setClientId(project.clientId);
+      setIsNewClient(false);
+      setNewClientName("");
+      setNewClientEmail("");
       setStatus(project.status);
       setFeeStructure(project.feeStructure);
       setLocation(project.location ?? "");
@@ -104,40 +111,62 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
   const handleSubmit = async () => {
     if (!firm || !user || !project) return;
     if (!name.trim()) return setError("Project name is required.");
-    if (!clientId) return setError("Select a client.");
+    if (!isNewClient && !clientId) return setError("Select a client.");
+    if (isNewClient && !newClientName.trim()) return setError("Client name is required.");
     if (!teamLeadId) return setError("Assign a team lead.");
 
-    const selectedClient = firmClients.find((c) => c.id === clientId);
-
-    // Only include dates that the user explicitly changed — never auto-override
-    const patch: any = {
-      name: name.trim(),
-      clientId,
-      clientName: selectedClient?.name ?? project.clientName,
-      status,
-      feeStructure,
-      location,
-      projectValue: projectValue ? Number(projectValue) : undefined,
-      feeAgreed: feeAgreed ? Number(feeAgreed) : 0,
-      teamLeadId,
-      staffIds,
-      contractorIds,
-      description: description || undefined,
-      updatedAt: nowIso(),
-    };
-
-    if (startDateChanged && startDate) patch.startDate = startDate;
-    if (endDateChanged && expectedEndDate) patch.expectedEndDate = expectedEndDate;
-
     try {
-      // Persist to database via API
+      let finalClientId = clientId;
+      let finalClientName = firmClients.find((c) => c.id === clientId)?.name ?? project.clientName;
+
+      if (isNewClient) {
+        const newClientRecord = await createClientMut.mutateAsync({
+          name: newClientName.trim(),
+          email: newClientEmail.trim() || "no-email@example.com",
+        });
+
+        useFirmStore.getState().addClient({
+          id: newClientRecord.id,
+          firmId: newClientRecord.firmId,
+          name: newClientRecord.name,
+          email: newClientRecord.email,
+          phone: newClientRecord.phone || "",
+          portalEnabled: newClientRecord.portalEnabled,
+          createdAt: new Date(newClientRecord.createdAt).toISOString(),
+        });
+
+        finalClientId = newClientRecord.id;
+        finalClientName = newClientRecord.name;
+        setClientId(newClientRecord.id);
+      }
+
+      // Only include dates that the user explicitly changed — never auto-override
+      const patch: Partial<Project> = {
+        name: name.trim(),
+        clientId: finalClientId,
+        clientName: finalClientName,
+        status,
+        feeStructure,
+        location,
+        projectValue: projectValue ? Number(projectValue) : undefined,
+        feeAgreed: feeAgreed ? Number(feeAgreed) : 0,
+        teamLeadId,
+        staffIds,
+        contractorIds,
+        description: description || undefined,
+        updatedAt: nowIso(),
+      };
+
+      if (startDateChanged && startDate) patch.startDate = startDate;
+      if (endDateChanged && expectedEndDate) patch.expectedEndDate = expectedEndDate;
+
       await updateProjectMutation.mutateAsync({ projectId: project.id, data: patch });
-      // Also update local Zustand store for optimistic UI
       updateProject(project.id, patch);
       toast(`Project "${name.trim()}" updated`, "success");
       onClose();
-    } catch {
-      setError("Failed to save changes. Please try again.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save changes. Please try again.";
+      setError(message);
     }
   };
 
@@ -173,20 +202,51 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
         </Field>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Field label="Client" required>
-            <select
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="">Select client…</option>
-              {firmClients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <label style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-primary)" }}>
+                Client <span style={{ color: "var(--color-destructive)" }}>*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsNewClient(!isNewClient)}
+                style={{ background: "none", border: "none", color: "var(--color-accent)", fontSize: "var(--text-xs)", cursor: "pointer", padding: 0 }}
+              >
+                {isNewClient ? "Select existing" : "+ Add new client"}
+              </button>
+            </div>
+            {isNewClient ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <input
+                  type="text"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  placeholder="Client Name *"
+                  style={inputStyle}
+                />
+                <input
+                  type="email"
+                  value={newClientEmail}
+                  onChange={(e) => setNewClientEmail(e.target.value)}
+                  placeholder="Email (optional)"
+                  style={inputStyle}
+                />
+              </div>
+            ) : (
+              <select
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="">Select client…</option>
+                {firmClients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
 
           <Field label="Status">
             <select
@@ -438,8 +498,13 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
           <button type="button" onClick={onClose} style={ghostBtnStyle}>
             Cancel
           </button>
-          <button type="button" onClick={handleSubmit} style={primaryBtnStyle} disabled={updateProjectMutation.isPending}>
-            {updateProjectMutation.isPending ? "Saving…" : "Save Changes"}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            style={primaryBtnStyle}
+            disabled={updateProjectMutation.isPending || createClientMut.isPending}
+          >
+            {updateProjectMutation.isPending || createClientMut.isPending ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>
