@@ -14,6 +14,7 @@ import { uid, nowIso } from "../../lib/store/uid";
 import { useAuthStore } from "../../lib/store/auth.store";
 import { useFirmStore } from "../../lib/store/firm.store";
 import { useProjectStore } from "../../lib/store/project.store";
+import { useStaff } from "../../hooks/useStaff";
 import { Avatar } from "../shared/Avatar";
 import { Plus, X } from "lucide-react";
 import type { Project, ProjectStage, TemplateStage } from "../../lib/store/types";
@@ -53,7 +54,8 @@ export function NewProjectDrawer({ open, onClose }: Props) {
   const firmSlug = params?.firmSlug ?? "demo";
 
   const { user, firm } = useAuthStore();
-  const { users, clients, contractors, templates } = useFirmStore();
+  const { clients, contractors, templates } = useFirmStore();
+  const { data: staffUsers = [], isLoading: isLoadingStaff, isError: isErrorStaff } = useStaff(firm?.id || "");
   const { addProject } = useProjectStore();
 
   const instantiateProjectMut = useInstantiateProject(firm?.id || "");
@@ -68,8 +70,8 @@ export function NewProjectDrawer({ open, onClose }: Props) {
     [templates, firm]
   );
   const activeStaff = useMemo(
-    () => users.filter((u) => u.firmId === firm?.id && u.status === "active"),
-    [users, firm]
+    () => staffUsers.filter((u) => u.status === "active"),
+    [staffUsers]
   );
 
   const [name, setName] = useState("");
@@ -372,8 +374,11 @@ export function NewProjectDrawer({ open, onClose }: Props) {
               value={teamLeadId}
               onChange={(e) => setTeamLeadId(e.target.value)}
               style={inputStyle}
+              disabled={isLoadingStaff || isErrorStaff}
             >
-              <option value="">Select lead…</option>
+              <option value="">
+                {isLoadingStaff ? "Loading staff..." : isErrorStaff ? "Failed to load staff" : "Select lead..."}
+              </option>
               {activeStaff
                 .filter((u) => u.role === "admin" || u.role === "team_lead")
                 .map((u) => (
@@ -385,19 +390,24 @@ export function NewProjectDrawer({ open, onClose }: Props) {
           </Field>
 
           <Field label="Staff">
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                minHeight: 38,
-                padding: "6px 8px",
-                background: "var(--color-bg-input)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-sm)",
-              }}
-            >
-              {activeStaff
+            {isLoadingStaff ? (
+              <div style={{ color: "var(--color-text-dim)", padding: "8px 0" }}>Loading staff...</div>
+            ) : isErrorStaff ? (
+              <div style={{ color: "var(--color-danger)", padding: "8px 0" }}>Failed to load staff</div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  minHeight: 38,
+                  padding: "6px 8px",
+                  background: "var(--color-bg-input)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius-sm)",
+                }}
+              >
+                {activeStaff
                 .filter((u) => u.id !== teamLeadId)
                 .map((u) => {
                   const active = staffIds.includes(u.id);
@@ -426,7 +436,8 @@ export function NewProjectDrawer({ open, onClose }: Props) {
                     </button>
                   );
                 })}
-            </div>
+              </div>
+            )}
           </Field>
         </div>
 

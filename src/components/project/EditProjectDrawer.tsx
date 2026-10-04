@@ -13,6 +13,7 @@ import { useAuthStore } from "../../lib/store/auth.store";
 import { useFirmStore } from "../../lib/store/firm.store";
 import { useProjectStore } from "../../lib/store/project.store";
 import { useUpdateProject, useCreateClient } from "../../hooks/useProjects";
+import { useStaff } from "../../hooks/useStaff";
 import { Avatar } from "../shared/Avatar";
 import { X, Plus } from "lucide-react";
 import type { Project } from "../../lib/store/types";
@@ -38,8 +39,9 @@ const STATUS_OPTIONS: { value: Project["status"]; label: string }[] = [
 
 export function EditProjectDrawer({ open, project, onClose }: Props) {
   const { user, firm } = useAuthStore();
-  const { users, clients, contractors } = useFirmStore();
+  const { clients, contractors } = useFirmStore();
   const { updateProject } = useProjectStore();
+  const { data: staffUsers = [], isLoading: isLoadingStaff, isError: isErrorStaff } = useStaff(firm?.id || "");
   const updateProjectMutation = useUpdateProject(firm?.id || "");
   const createClientMut = useCreateClient(firm?.id || "");
 
@@ -48,8 +50,8 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
     [clients, firm]
   );
   const activeStaff = useMemo(
-    () => users.filter((u) => u.firmId === firm?.id && u.status === "active"),
-    [users, firm]
+    () => staffUsers.filter((u) => u.status === "active"),
+    [staffUsers]
   );
 
   const [name, setName] = useState("");
@@ -360,8 +362,11 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
               value={teamLeadId}
               onChange={(e) => setTeamLeadId(e.target.value)}
               style={inputStyle}
+              disabled={isLoadingStaff || isErrorStaff}
             >
-              <option value="">Select lead…</option>
+              <option value="">
+                {isLoadingStaff ? "Loading staff..." : isErrorStaff ? "Failed to load staff" : "Select lead..."}
+              </option>
               {activeStaff
                 .filter((u) => u.role === "admin" || u.role === "team_lead")
                 .map((u) => (
@@ -373,21 +378,26 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
           </Field>
 
           <Field label="Staff">
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                minHeight: 38,
-                padding: "6px 8px",
-                background: "var(--color-bg-input)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-sm)",
-              }}
-            >
-              {activeStaff
-                .filter((u) => u.id !== teamLeadId)
-                .map((u) => {
+            {isLoadingStaff ? (
+              <div style={{ color: "var(--color-text-dim)", padding: "8px 0" }}>Loading staff...</div>
+            ) : isErrorStaff ? (
+              <div style={{ color: "var(--color-danger)", padding: "8px 0" }}>Failed to load staff</div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  minHeight: 38,
+                  padding: "6px 8px",
+                  background: "var(--color-bg-input)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius-sm)",
+                }}
+              >
+                {activeStaff
+                  .filter((u) => u.id !== teamLeadId)
+                  .map((u) => {
                   const active = staffIds.includes(u.id);
                   return (
                     <button
@@ -421,7 +431,8 @@ export function EditProjectDrawer({ open, project, onClose }: Props) {
                     </button>
                   );
                 })}
-            </div>
+              </div>
+            )}
           </Field>
         </div>
 
