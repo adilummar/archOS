@@ -7,6 +7,9 @@ import { requireFeature } from "@/services/feature.service";
 export const GET = withAuth(async (ctx, req, context: any) => {
   await requireFeature(ctx, "PROJECTS");
   const project = await ProjectService.getProject(ctx, (await context.params).projectId);
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
   return NextResponse.json(project);
 });
 

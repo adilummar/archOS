@@ -6,7 +6,9 @@ export function clearTenantPersistedState() {
     const keys: string[] = [];
     for (let i = 0; i < store.length; i++) {
       const key = store.key(i);
-      if (key && prefixes.some((p) => key.startsWith(p))) keys.push(key);
+      if (key && prefixes.some((p) => key.startsWith(p)) && key !== "archos-auth") {
+        keys.push(key);
+      }
     }
     for (const key of keys) store.removeItem(key);
   }

@@ -127,11 +127,11 @@ export const PlatformService = {
     await platformPrisma.activityLog.create({
       data: {
         firmId: id,
-        userId: adminId, // Uses Platform Admin ID
+        userId: null,
         entity: "firm",
         entityId: id,
         action: "updated_features",
-        description: `PlatformAdmin updated features from [${oldFeatures}] to [${newFeatures}]`
+        description: `PlatformAdmin (${adminId}) updated features from [${oldFeatures}] to [${newFeatures}]`
       }
     });
 

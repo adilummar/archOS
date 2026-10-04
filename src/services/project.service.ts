@@ -8,12 +8,13 @@ export async function getProjects(ctx: AuthContext, firmId: string) {
     return withAuthTx(ctx, async tx => {
       return withAuthTx(ctx, async tx => {
         let where: any = { firmId };
-        if (ctx.role !== "admin") {
+        if (ctx.role === "team_lead") {
           where.OR = [
             { teamLeadId: ctx.userId },
-            { staffMembers: { some: { userId: ctx.userId } } },
-            { tasks: { some: { assigneeId: ctx.userId } } }
+            { staffMembers: { some: { userId: ctx.userId } } }
           ];
+        } else if (ctx.role === "staff") {
+          where.staffMembers = { some: { userId: ctx.userId } };
         }
         return tx.project.findMany({
           where,
@@ -165,7 +166,7 @@ export async function createProject(ctx: AuthContext, data: {
         // Log the creation
         await tx.activityLog.create({
           data: {
-            firmId: data.firmId,
+            firmId: ctx.firmId,
             userId: data.teamLeadId,
             projectId: project.id,
             entity: "project",
@@ -407,7 +408,7 @@ export async function instantiateProjectFromTemplate(ctx: AuthContext, data: {
         }
         await tx.activityLog.create({
           data: {
-            firmId: data.firmId,
+            firmId: ctx.firmId,
             userId: data.teamLeadId,
             projectId: project.id,
             entity: "project",
@@ -553,16 +554,16 @@ export async function getTemplatesByFirm(ctx: AuthContext, firmId: string) {
   });
 }
 export async function createClient(ctx: AuthContext, data: {
-  firmId: string;
   name: string;
   email: string;
 }) {
+  if (ctx.role !== "admin") throw new Error("Unauthorized: Only Admin can create clients");
   return withAuthTx(ctx, async tx => {
     return withAuthTx(ctx, async tx => {
       return withAuthTx(ctx, async tx => {
         return tx.client.create({
           data: {
-            firmId: data.firmId,
+            firmId: ctx.firmId,
             name: data.name,
             email: data.email
           }
