@@ -4,7 +4,8 @@
  * Sections: Firm Profile | Staff & Roles | Portal Settings | Leave Settings | Notification Preferences
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Building2,
   Users,
@@ -44,11 +45,16 @@ import { CSS } from "@dnd-kit/utilities";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { useFirmStore } from "@/lib/store/firm.store";
 import { toast } from "@/lib/store/toast.store";
+import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate } from "@/hooks/useTemplates";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { DEFAULT_RESIDENTIAL_TEMPLATE_STAGES } from "@/lib/project-template";
 import { Avatar } from "@/components/shared/Avatar";
 import { addStaffMember, changeStaffPassword, editStaffMember, suspendStaffMember, unsuspendStaffMember } from "@/app/actions/staff.actions";
+import { useAddStaff, useStaff, staffKeys } from "@/hooks/useStaff";
+import { useQueryClient } from "@tanstack/react-query";
 import { Key } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import type { User, Role, ProjectTemplate, TemplateStage, FileCategory, TemplateTask } from "@/lib/store/types";
+import type { User, Role, ProjectTemplate, TemplateStage, TemplateTask } from "@/lib/store/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -825,7 +831,9 @@ function StaffRow({
 
 function StaffRolesSection() {
   const { firm: authFirm } = useAuthStore();
-  const { users, updateUser, discontinueUser } = useFirmStore();
+  const { data: staff = [], isLoading, isError } = useStaff(authFirm?.id || "");
+  const queryClient = useQueryClient();
+  const addStaffMutation = useAddStaff(authFirm?.id || "");
   const [showDiscontinued, setShowDiscontinued] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -833,14 +841,14 @@ function StaffRolesSection() {
   const [newPassword, setNewPassword] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
-  const firmUsers = users.filter((u) => u.firmId === authFirm?.id);
-  const active = firmUsers.filter((u) => u.status === "active");
-  const discontinued = firmUsers.filter((u) => u.status === "discontinued");
+  const firmUsers = staff.filter((u: any) => u.firmId === authFirm?.id);
+  const active = firmUsers.filter((u: any) => u.status === "active");
+  const discontinued = firmUsers.filter((u: any) => u.status === "discontinued");
 
   const handleSave = async (id: string, patch: { role?: Role; costRatePerHour?: number }) => {
     try {
       await editStaffMember(id, patch);
-      updateUser(id, patch);
+      queryClient.invalidateQueries({ queryKey: staffKeys.all(authFirm?.id || "") });
       toast("Staff member updated", "success");
     } catch (e: any) {
       toast(e.message || "Failed to update", "error");
@@ -850,7 +858,7 @@ function StaffRolesSection() {
   const handleDiscontinue = async (id: string) => {
     try {
       await suspendStaffMember(id);
-      discontinueUser(id);
+      queryClient.invalidateQueries({ queryKey: staffKeys.all(authFirm?.id || "") });
       toast("Staff member discontinued", "warning");
     } catch (e: any) {
       toast(e.message || "Failed to discontinue", "error");
@@ -860,7 +868,7 @@ function StaffRolesSection() {
   const handleReactivate = async (id: string) => {
     try {
       await unsuspendStaffMember(id);
-      updateUser(id, { status: "active", discontinuedAt: undefined });
+      queryClient.invalidateQueries({ queryKey: staffKeys.all(authFirm?.id || "") });
       toast("Staff member reactivated", "success");
     } catch (e: any) {
       toast(e.message || "Failed to reactivate", "error");
@@ -881,7 +889,7 @@ function StaffRolesSection() {
         costRatePerHour: Number(fd.get("costRatePerHour")) || 0
       };
       await editStaffMember(editUser.id, patch);
-      updateUser(editUser.id, patch);
+      queryClient.invalidateQueries({ queryKey: staffKeys.all(authFirm?.id || "") });
       toast("Profile updated successfully", "success");
       setEditUser(null);
     } catch (err: any) {
@@ -897,22 +905,20 @@ function StaffRolesSection() {
     setActionLoading(true);
     try {
       const fd = new FormData(e.currentTarget);
-      const res = await addStaffMember({
-        firmId: authFirm.id,
+      const data = {
         name: fd.get("name") as string,
         email: fd.get("email") as string,
         password: fd.get("password") as string,
-        role: fd.get("role") as any,
+        role: fd.get("role") as string,
         designation: fd.get("designation") as string,
         costRatePerHour: Number(fd.get("costRatePerHour")) || 0
-      });
-      if (res && 'error' in res && (res as any).error) {
-        toast((res as any).error, "error");
-        return;
-      }
+      };
+      
+      await addStaffMutation.mutateAsync(data);
+      
       toast("Staff added successfully", "success");
       setShowAddModal(false);
-      window.location.reload();
+      // No reload needed, TanStack Query invalidates automatically
     } catch (err: any) {
       toast(err.message || "Failed to add staff", "error");
     } finally {
@@ -978,7 +984,19 @@ function StaffRolesSection() {
 
       {/* Active staff */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {active.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <p style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "var(--text-sm)", padding: "24px 0", margin: 0 }}>
+              Loading staff...
+            </p>
+          </Card>
+        ) : isError ? (
+          <Card>
+            <p style={{ textAlign: "center", color: "#ef4444", fontSize: "var(--text-sm)", padding: "24px 0", margin: 0 }}>
+              Failed to load staff list.
+            </p>
+          </Card>
+        ) : active.length === 0 ? (
           <Card>
             <p
               style={{
@@ -989,7 +1007,7 @@ function StaffRolesSection() {
                 margin: 0,
               }}
             >
-              No staff yet â€” invite team members to get started.
+              No staff yet — invite team members to get started.
             </p>
           </Card>
         ) : (
@@ -1815,10 +1833,24 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { user } = useAuthStore();
   const [ready, setReady] = useState(false);
-  const [activeSection, setActiveSection] = useState<Section>("firm-profile");
+  
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  
+  const sectionParam = searchParams.get("section") as Section | null;
+  const activeSection = (sectionParam && NAV_ITEMS.some((i) => i.id === sectionParam))
+    ? sectionParam
+    : "firm-profile";
+
+  const handleSectionChange = (id: Section) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("section", id);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 1200);
@@ -1862,7 +1894,7 @@ export default function SettingsPage() {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => handleSectionChange(item.id)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -2141,19 +2173,23 @@ function SortableStageItem({
 }
 
 function ProjectTemplatesSection() {
-  const { firm } = useAuthStore();
-  const { templates, updateTemplate, addTemplate } = useFirmStore();
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
-    templates.find((t) => t.firmId === firm?.id)?.id || null
-  );
+  const { user, firm } = useAuthStore();
+  const isAdmin = user?.role === "admin";
+  const { data: firmTemplates = [], isLoading: isLoadingTemplates } = useTemplates(firm?.id || "");
+  const createTemplateMut = useCreateTemplate(firm?.id || "");
+  const updateTemplateMut = useUpdateTemplate(firm?.id || "");
+  const deleteTemplateMut = useDeleteTemplate(firm?.id || "");
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<ProjectTemplate | null>(null);
 
-  // Auto-select first template when templates load from DB (store starts empty on mount)
   useEffect(() => {
-    if (!activeTemplateId) {
-      const first = templates.find((t) => t.firmId === firm?.id);
-      if (first) setActiveTemplateId(first.id);
+    if (!activeTemplateId && firmTemplates.length > 0) {
+      setActiveTemplateId(firmTemplates[0].id);
     }
-  }, [templates, firm?.id, activeTemplateId]);
+    if (activeTemplateId && !firmTemplates.some((t) => t.id === activeTemplateId) && firmTemplates[0]) {
+      setActiveTemplateId(firmTemplates[0].id);
+    }
+  }, [firmTemplates, activeTemplateId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -2162,23 +2198,74 @@ function ProjectTemplatesSection() {
 
   if (!firm) return null;
 
-  const firmTemplates = templates.filter((t) => t.firmId === firm.id);
   const activeTemplate = firmTemplates.find((t) => t.id === activeTemplateId);
 
-  const handleAddTemplate = () => {
-    const newTemp: ProjectTemplate = {
-      id: `tmpl-${Date.now()}`,
-      firmId: firm.id,
-      name: "New Template",
-      description: "Custom project template",
-      stages: [],
-      feeStructure: "lump_sum",
-      defaultFileRequestWindowDays: 3,
-      isDefault: false,
-    };
-    addTemplate(newTemp);
-    setActiveTemplateId(newTemp.id);
-    toast("Template created", "success");
+  const persistTemplate = (
+    templateId: string,
+    patch: { name?: string; feeStructure?: ProjectTemplate["feeStructure"]; stages?: TemplateStage[] }
+  ) => {
+    updateTemplateMut.mutate(
+      {
+        templateId,
+        data: {
+          name: patch.name,
+          feeStructure: patch.feeStructure,
+          stages: patch.stages?.map((stage, index) => ({
+            name: stage.name,
+            order: index,
+            defaultDurationDays: stage.defaultDurationDays,
+            description: stage.description,
+            isClientApprovalRequired: stage.isClientApprovalRequired,
+            isPaymentMilestone: stage.isPaymentMilestone,
+            paymentPercentage: stage.paymentPercentage,
+            drawingTypesExpected: stage.drawingTypesExpected,
+            tasks: (stage.tasks ?? []).map((task, taskIndex) => ({
+              title: task.title,
+              description: task.description,
+              order: taskIndex,
+              priority: task.priority,
+            })),
+          })),
+        },
+      },
+      {
+        onError: (err) => {
+          toast(err instanceof Error ? err.message : "Failed to save template", "error");
+        },
+      }
+    );
+  };
+
+  const handleAddTemplate = async () => {
+    try {
+      const created = await createTemplateMut.mutateAsync({
+        name: "Standard Residential",
+        description: "Standard workflow for residential architecture projects",
+        feeStructure: "per_stage",
+        defaultFileRequestWindowDays: 7,
+        isDefault: firmTemplates.length === 0,
+        stages: DEFAULT_RESIDENTIAL_TEMPLATE_STAGES,
+      });
+      setActiveTemplateId(created.id);
+      toast("Template created", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to create template", "error");
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!templateToDelete || deleteTemplateMut.isPending) return;
+    try {
+      await deleteTemplateMut.mutateAsync(templateToDelete.id);
+      toast(`Template "${templateToDelete.name}" deleted`, "success");
+      if (activeTemplateId === templateToDelete.id) {
+        const remaining = firmTemplates.filter((t) => t.id !== templateToDelete.id);
+        setActiveTemplateId(remaining.length > 0 ? remaining[0].id : null);
+      }
+      setTemplateToDelete(null);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to delete template", "error");
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -2191,11 +2278,9 @@ function ProjectTemplatesSection() {
       const newStages = [...activeTemplate.stages];
       const [moved] = newStages.splice(oldIndex, 1);
       newStages.splice(newIndex, 0, moved);
-
-      // Update order field
       newStages.forEach((s, i) => { s.order = i; });
 
-      updateTemplate(activeTemplate.id, { stages: newStages });
+      persistTemplate(activeTemplate.id, { stages: newStages });
     }
   };
 
@@ -2211,7 +2296,7 @@ function ProjectTemplatesSection() {
       isPaymentMilestone: false,
       drawingTypesExpected: [],
     };
-    updateTemplate(activeTemplate.id, {
+    persistTemplate(activeTemplate.id, {
       stages: [...activeTemplate.stages, newStage],
     });
   };
@@ -2233,33 +2318,114 @@ function ProjectTemplatesSection() {
           </PrimaryButton>
         </div>
 
+        {isLoadingTemplates && (
+          <p style={{ margin: "0 0 16px", fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
+            Loading templates...
+          </p>
+        )}
+
+        {!isLoadingTemplates && firmTemplates.length === 0 && (
+          <p style={{ margin: "0 0 16px", fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
+            No project templates in this firm yet. Create one to instantiate stages and tasks on new projects.
+          </p>
+        )}
+
         {firmTemplates.length > 0 && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 24, borderBottom: "1px solid var(--color-border)", paddingBottom: 16 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24, borderBottom: "1px solid var(--color-border)", paddingBottom: 16 }}>
             {firmTemplates.map((t) => (
-              <button
+              <div
                 key={t.id}
-                onClick={() => setActiveTemplateId(t.id)}
                 style={{
-                  padding: "8px 16px",
+                  display: "inline-flex",
+                  alignItems: "center",
                   borderRadius: "var(--radius-full)",
                   border: `1px solid ${activeTemplateId === t.id ? "var(--color-accent)" : "var(--color-border)"}`,
                   background: activeTemplateId === t.id ? "var(--color-accent-muted)" : "transparent",
-                  color: activeTemplateId === t.id ? "var(--color-accent)" : "var(--color-text-secondary)",
-                  fontSize: "var(--text-sm)",
-                  fontWeight: activeTemplateId === t.id ? 600 : 400,
-                  cursor: "pointer",
+                  paddingRight: isAdmin ? 4 : 0,
                   transition: "all var(--duration-fast)",
                 }}
               >
-                {t.name}
-                {t.isDefault && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.7 }}>(Default)</span>}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTemplateId(t.id)}
+                  style={{
+                    padding: "8px 14px",
+                    background: "transparent",
+                    border: "none",
+                    color: activeTemplateId === t.id ? "var(--color-accent)" : "var(--color-text-secondary)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: activeTemplateId === t.id ? 600 : 400,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t.name}
+                  {t.isDefault && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.7 }}>(Default)</span>}
+                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    title={`Delete template "${t.name}"`}
+                    aria-label={`Delete template "${t.name}"`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTemplateToDelete(t);
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      border: "none",
+                      background: "transparent",
+                      color: "var(--color-text-muted)",
+                      cursor: "pointer",
+                      marginRight: 4,
+                      transition: "color var(--duration-fast)",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-destructive)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-muted)")}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}
 
         {activeTemplate && (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {isAdmin && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: -10 }}>
+                <button
+                  type="button"
+                  onClick={() => setTemplateToDelete(activeTemplate)}
+                  disabled={deleteTemplateMut.isPending}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "7px 16px",
+                    borderRadius: "99px",
+                    border: "1px solid rgba(255, 107, 94, 0.3)",
+                    background: "rgba(255, 107, 94, 0.1)",
+                    color: "#FF6B5E",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 107, 94, 0.2)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 107, 94, 0.1)")}
+                >
+                  <Trash2 size={13} />
+                  Delete Template
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--color-text-primary)", display: "block", marginBottom: 6 }}>
@@ -2267,8 +2433,9 @@ function ProjectTemplatesSection() {
                 </label>
                 <input
                   type="text"
-                  value={activeTemplate.name}
-                  onChange={(e) => updateTemplate(activeTemplate.id, { name: e.target.value })}
+                  defaultValue={activeTemplate.name}
+                  key={activeTemplate.id}
+                  onBlur={(e) => persistTemplate(activeTemplate.id, { name: e.target.value })}
                   style={{ width: "100%", padding: "8px 12px", fontSize: "var(--text-sm)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)" }}
                 />
               </div>
@@ -2278,7 +2445,12 @@ function ProjectTemplatesSection() {
                 </label>
                 <select
                   value={activeTemplate.feeStructure}
-                  onChange={(e) => updateTemplate(activeTemplate.id, { feeStructure: e.target.value as any })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "lump_sum" || value === "percentage" || value === "per_stage") {
+                      persistTemplate(activeTemplate.id, { feeStructure: value });
+                    }
+                  }}
                   style={{ width: "100%", padding: "8px 12px", fontSize: "var(--text-sm)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-bg-input)", color: "var(--color-text-primary)" }}
                 >
                   <option value="lump_sum">Lump Sum</option>
@@ -2315,12 +2487,12 @@ function ProjectTemplatesSection() {
                           const newStages = activeTemplate.stages.map((s) =>
                             s.id === stage.id ? { ...s, ...patch } : s
                           );
-                          updateTemplate(activeTemplate.id, { stages: newStages });
+                          persistTemplate(activeTemplate.id, { stages: newStages });
                         }}
                         onRemove={() => {
                           const newStages = activeTemplate.stages.filter((s) => s.id !== stage.id);
                           newStages.forEach((s, i) => { s.order = i; });
-                          updateTemplate(activeTemplate.id, { stages: newStages });
+                          persistTemplate(activeTemplate.id, { stages: newStages });
                         }}
                       />
                     ))}
@@ -2331,9 +2503,32 @@ function ProjectTemplatesSection() {
           </div>
         )}
       </Card>
+
+      <ConfirmDialog
+        isOpen={templateToDelete !== null}
+        title={`Delete "${templateToDelete?.name}"?`}
+        description={`Deleting this template will prevent it from being used for future project creation. All existing projects created from this template remain intact and unchanged.`}
+        confirmLabel={deleteTemplateMut.isPending ? "Deleting..." : "Delete Template"}
+        cancelLabel="Cancel"
+        isDestructive={true}
+        onConfirm={handleDeleteTemplate}
+        onCancel={() => {
+          if (!deleteTemplateMut.isPending) {
+            setTemplateToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 }
 
 
 
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<SettingsSkeleton />}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
