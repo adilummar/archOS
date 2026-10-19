@@ -3,6 +3,7 @@ import { AuthContext } from "./auth.service";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 
 const SAFE_USER_SELECT = {
   id: true,
@@ -84,8 +85,14 @@ export async function createUser(ctx: AuthContext, data: {
     const colors = ["#E85D04", "#3A86FF", "#8338EC", "#06D6A0", "#FFB703"];
     const avatarColor = colors[Math.floor(Math.random() * colors.length)];
     
+    // Explicit duplicate email check across all firms
+    const existing = await platformPrisma.user.findUnique({ where: { email: data.email.toLowerCase().trim() } });
+    if (existing) {
+      throw new Error("A user with this email already exists");
+    }
+
     const tempPassword = data.password || crypto.randomBytes(6).toString("hex");
-      const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     const user = await tx.user.create({
       data: {
@@ -160,6 +167,11 @@ export async function updateUser(ctx: AuthContext, userId: string, data: any) {
       updateData.role = data.role;
     }
 
+    // Password handling
+    if (typeof data.passwordHash === "string" && data.passwordHash.length > 0) {
+      updateData.passwordHash = data.passwordHash;
+    }
+
     const user = await tx.user.update({
       where: { id: userId },
       data: updateData,
@@ -167,8 +179,13 @@ export async function updateUser(ctx: AuthContext, userId: string, data: any) {
     });
 
     let actionDetails = "updated";
+    let actionDescription = "Updated user profile";
     if (data.status && data.status !== target.status) {
       actionDetails = data.status === "discontinued" ? "deactivated" : "activated";
+      actionDescription = `${actionDetails === "deactivated" ? "Deactivated" : "Activated"} user`;
+    } else if (data.passwordHash !== undefined) {
+      actionDetails = "password_changed";
+      actionDescription = "Changed user password";
     }
 
     await tx.activityLog.create({
@@ -178,7 +195,7 @@ export async function updateUser(ctx: AuthContext, userId: string, data: any) {
         entity: "user",
         entityId: user.id,
         action: actionDetails,
-        description: `Updated user profile`
+        description: actionDescription
       }
     });
 

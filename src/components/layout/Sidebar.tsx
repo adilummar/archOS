@@ -1,9 +1,13 @@
 "use client";
 /**
- * Sidebar — firm portal navigation shell.
- * Dark, flush with canvas. Icon + label nav with group headers.
- * Collapses to icon-only on mobile (< 768px).
- * Active state driven by usePathname.
+ * Sidebar — Arch OS Obsidian navigation shell.
+ * Reference: docs/design/arch-os-design-system.md & arch-os-dashboard.html
+ * - 62px width, 2px solid #2B2B2B frame, rounded right corners 10px, background #0B0B0B.
+ * - Icon-only navigation with 44x44px interactive targets.
+ * - Active item fill: #1E2A22 with #FFFFFF icon.
+ * - Inactive item: #BDB8B2.
+ * - Pinned Settings at the bottom.
+ * - Preserves all existing role and feature permissions.
  */
 
 import { useState } from "react";
@@ -11,29 +15,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "../../lib/store/auth.store";
 import type { Role } from "../../lib/store/types";
-import { Avatar } from "../shared/Avatar";
 import {
   LayoutDashboard,
   FolderKanban,
   CheckSquare,
-  Clock,
-  CalendarOff,
+  Users2,
+  UserCheck,
+  Settings,
+  MoreHorizontal,
+  X,
   FileText,
   Users,
-  Users2,
-  MessageSquare,
-  BarChart2,
   Receipt,
-  GitPullRequest,
-  GitMerge,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Building2,
-  UserCheck,
+  GitPullRequest
 } from "lucide-react";
 
 interface NavItem {
+  id: string;
   label: string;
   href: string;
   icon: React.ReactNode;
@@ -41,403 +39,321 @@ interface NavItem {
   requiredFeature?: string;
 }
 
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-function getNavGroups(firmSlug: string, enabledFeatures: string[] = []): NavGroup[] {
-  return [
-    {
-      label: "Workspace",
-      items: [
-        {
-          label: "Dashboard", requiredFeature: "DASHBOARD",
-          href: `/${firmSlug}/dashboard`,
-          icon: <LayoutDashboard size={16} strokeWidth={1.5} />,
-        },
-        {
-          label: "Staff", requiredFeature: "STAFF",
-          href: `/${firmSlug}/staff`,
-          icon: <Users2 size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead"],
-        },
-        {
-          label: "Projects", requiredFeature: "PROJECTS",
-          href: `/${firmSlug}/projects`,
-          icon: <FolderKanban size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead", "staff"],
-        },
-        {
-          label: "Tasks", requiredFeature: "TASKS",
-          href: `/${firmSlug}/tasks`,
-          icon: <CheckSquare size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead", "staff"],
-        },
-        {
-          label: "Attendance", requiredFeature: "ATTENDANCE",
-          href: `/${firmSlug}/attendance`,
-          icon: <UserCheck size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead", "staff", "accounts"],
-        },
-        {
-          label: "Time", requiredFeature: "TIME",
-          href: `/${firmSlug}/time`,
-          icon: <Clock size={16} strokeWidth={1.5} />,
-        },
-        {
-          label: "Leave", requiredFeature: "LEAVE",
-          href: `/${firmSlug}/leave`,
-          icon: <CalendarOff size={16} strokeWidth={1.5} />,
-        },
-      ],
-    },
-    {
-      label: "Project Ops",
-      items: [
-        {
-          label: "Meetings", requiredFeature: "MEETINGS",
-          href: `/${firmSlug}/meetings`,
-          icon: <Users size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead"],
-        },
-        {
-          label: "RFIs", requiredFeature: "RFI",
-          href: `/${firmSlug}/rfi`,
-          icon: <MessageSquare size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead"],
-        },
-        {
-          label: "Site Reports", requiredFeature: "SITE_REPORTS",
-          href: `/${firmSlug}/site-reports`,
-          icon: <FileText size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead"],
-        },
-      ],
-    },
-    {
-      label: "Business",
-      items: [
-        {
-          label: "CRM", requiredFeature: "CRM",
-          href: `/${firmSlug}/crm`,
-          icon: <BarChart2 size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "accounts"],
-        },
-        {
-          label: "Finance", requiredFeature: "FINANCE",
-          href: `/${firmSlug}/finance`,
-          icon: <Receipt size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "accounts"],
-        },
-        {
-          label: "Change Requests", requiredFeature: "CHANGE_REQUESTS",
-          href: `/${firmSlug}/change-requests`,
-          icon: <GitPullRequest size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead", "accounts"],
-        },
-        {
-          label: "Variation Orders", requiredFeature: "VARIATION_ORDERS",
-          href: `/${firmSlug}/variation-orders`,
-          icon: <GitMerge size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin", "team_lead", "accounts"],
-        },
-      ],
-    },
-    {
-      label: "Admin",
-      items: [
-        {
-          label: "Settings",
-          href: `/${firmSlug}/settings`,
-          icon: <Settings size={16} strokeWidth={1.5} />,
-          allowedRoles: ["admin"],
-        },
-      ],
-    },
-  ];
-}
-
-interface SidebarProps {
+export function Sidebar({
+  firmSlug,
+  mobileOpen = false,
+  onCloseMobile,
+}: {
   firmSlug: string;
-  collapsed: boolean;
-  onToggle: () => void;
+  collapsed?: boolean;
+  onToggle?: () => void;
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
-}
-
-export function Sidebar({ firmSlug, collapsed, onToggle, mobileOpen, onCloseMobile }: SidebarProps) {
+}) {
   const pathname = usePathname();
   const { user, firm } = useAuthStore();
-  const navGroups = getNavGroups(firmSlug, firm?.enabledFeatures || []).map(group => ({
-    ...group,
-    items: group.items.filter(item => !item.requiredFeature || (firm?.enabledFeatures || []).includes(item.requiredFeature))
-  })).filter(group => group.items.length > 0);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const enabledFeatures = firm?.enabledFeatures ?? [];
+  const userRole = user?.role as Role | undefined;
+
+  const isFeatureAllowed = (feature?: string) => {
+    if (!feature) return true;
+    return enabledFeatures.includes(feature);
+  };
+
+  const isRoleAllowed = (allowedRoles?: Role[]) => {
+    if (!allowedRoles || allowedRoles.length === 0) return true;
+    if (!userRole) return false;
+    return allowedRoles.includes(userRole);
+  };
+
+  // Primary navigation items (matching Obsidian reference + core firm operations)
+  const primaryItems: NavItem[] = [
+    {
+      id: "home",
+      label: "Home",
+      href: `/${firmSlug}/dashboard`,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/>
+        </svg>
+      ),
+      requiredFeature: "DASHBOARD",
+    },
+    {
+      id: "projects",
+      label: "Projects",
+      href: `/${firmSlug}/projects`,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 3l10 5-10 5L2 8zM2 12l10 5 10-5v3l-10 5-10-5z"/>
+        </svg>
+      ),
+      requiredFeature: "PROJECTS",
+      allowedRoles: ["admin", "team_lead", "staff"],
+    },
+    {
+      id: "tasks",
+      label: "Tasks and approvals",
+      href: `/${firmSlug}/tasks`,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="6" rx="3"/>
+          <rect x="3" y="12" width="18" height="8" rx="3"/>
+        </svg>
+      ),
+      requiredFeature: "TASKS",
+      allowedRoles: ["admin", "team_lead", "staff"],
+    },
+    {
+      id: "staff",
+      label: "Staff",
+      href: `/${firmSlug}/staff`,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 21c0-5 4-7 8-7s8 2 8 7z"/>
+        </svg>
+      ),
+      requiredFeature: "STAFF",
+      allowedRoles: ["admin", "team_lead", "staff", "accounts"],
+    },
+  ];
+
+  // Secondary items in overflow menu
+  const secondaryItems: NavItem[] = [
+    {
+      id: "meetings",
+      label: "Meetings",
+      href: `/${firmSlug}/meetings`,
+      icon: <Users size={18} strokeWidth={1.8} />,
+      requiredFeature: "MEETINGS",
+      allowedRoles: ["admin", "team_lead"],
+    },
+    {
+      id: "finance",
+      label: "Finance",
+      href: `/${firmSlug}/finance`,
+      icon: <Receipt size={18} strokeWidth={1.8} />,
+      requiredFeature: "FINANCE",
+      allowedRoles: ["admin", "accounts"],
+    },
+    {
+      id: "change-requests",
+      label: "Change Requests",
+      href: `/${firmSlug}/change-requests`,
+      icon: <GitPullRequest size={18} strokeWidth={1.8} />,
+      requiredFeature: "CHANGE_REQUESTS",
+      allowedRoles: ["admin", "team_lead"],
+    },
+  ];
+
+  const visiblePrimary = primaryItems.filter(
+    (item) => isFeatureAllowed(item.requiredFeature) && isRoleAllowed(item.allowedRoles)
+  );
+
+  const visibleSecondary = secondaryItems.filter(
+    (item) => isFeatureAllowed(item.requiredFeature) && isRoleAllowed(item.allowedRoles)
+  );
+
+  const isSettingsActive = pathname.startsWith(`/${firmSlug}/settings`);
+
+  const sidebarContent = (
+    <nav
+      aria-label="Main"
+      style={{
+        position: "relative",
+        width: 62,
+        height: "calc(100vh - 48px)",
+        margin: "24px 0",
+        border: "2px solid #2B2B2B",
+        borderLeft: 0,
+        borderRadius: "0 10px 10px 0",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "14px 0",
+        gap: 6,
+        boxSizing: "border-box",
+        background: "#0B0B0B",
+        zIndex: 40,
+        flexShrink: 0,
+      }}
+    >
+      {/* Top 3 dots */}
+      <span
+        style={{
+          color: "#BDB8B2",
+          letterSpacing: 2,
+          fontSize: 18,
+          marginBottom: 16,
+          lineHeight: 1,
+          userSelect: "none",
+        }}
+        aria-hidden="true"
+      >
+        ···
+      </span>
+
+      {/* Primary Items */}
+      {visiblePrimary.map((item) => {
+        const isActive = pathname === item.href || (item.id !== "home" && pathname.startsWith(item.href));
+        return (
+          <Link
+            key={item.id}
+            href={item.href}
+            aria-label={item.label}
+            title={item.label}
+            className="ib"
+            onClick={onCloseMobile}
+            style={{
+              color: isActive ? "#FFFFFF" : "#BDB8B2",
+              background: isActive ? "#1E2A22" : "transparent",
+              textDecoration: "none",
+            }}
+          >
+            {item.icon}
+          </Link>
+        );
+      })}
+
+      {/* Overflow Menu Button (if secondary items exist) */}
+      {visibleSecondary.length > 0 && (
+        <div style={{ position: "relative" }}>
+          <button
+            type="button"
+            className="ib"
+            aria-label="More modules"
+            title="More modules"
+            onClick={() => setShowMoreMenu((v) => !v)}
+            style={{
+              color: showMoreMenu ? "#FFFFFF" : "#BDB8B2",
+              background: showMoreMenu ? "rgba(255, 255, 255, 0.08)" : "transparent",
+            }}
+          >
+            <MoreHorizontal size={20} strokeWidth={2} />
+          </button>
+
+          {showMoreMenu && (
+            <>
+              <div
+                style={{ position: "fixed", inset: 0, zIndex: 49 }}
+                onClick={() => setShowMoreMenu(false)}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "calc(100% + 12px)",
+                  top: -10,
+                  width: 200,
+                  background: "linear-gradient(160deg, #4A4743 0%, #34322F 100%)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: 10,
+                  padding: "8px 6px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  zIndex: 50,
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.6)",
+                }}
+              >
+                {visibleSecondary.map((sItem) => {
+                  const isSecActive = pathname.startsWith(sItem.href);
+                  return (
+                    <Link
+                      key={sItem.id}
+                      href={sItem.href}
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        onCloseMobile?.();
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontFamily: "var(--font-sans)",
+                        color: isSecActive ? "#FFFFFF" : "#F3F1EE",
+                        background: isSecActive ? "#1E2A22" : "transparent",
+                        textDecoration: "none",
+                        transition: "background 150ms ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSecActive) e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSecActive) e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      {sItem.icon}
+                      <span>{sItem.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Flexible Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Pinned Settings Item */}
+      <Link
+        href={`/${firmSlug}/settings`}
+        aria-label="Settings"
+        title="Settings"
+        className="ib"
+        onClick={onCloseMobile}
+        style={{
+          color: isSettingsActive ? "#FFFFFF" : "#BDB8B2",
+          background: isSettingsActive ? "#1E2A22" : "transparent",
+          textDecoration: "none",
+        }}
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="3.2" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" />
+        </svg>
+      </Link>
+    </nav>
+  );
 
   return (
     <>
-      {/* Mobile backdrop */}
-      {mobileOpen && (
-        <div
-          className="md:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={onCloseMobile}
-        />
-      )}
-      <aside
-        className={`${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:sticky md:top-0 h-screen z-50 flex flex-col shrink-0 bg-sidebar border-r border-border transition-all duration-300 overflow-hidden`}
-        style={{
-          width: collapsed ? 56 : 220,
-          minWidth: collapsed ? 56 : 220,
-        }}
-      >
-  
-      {/* Logo row */}
-      <div
-        style={{
-          height: 52,
-          borderBottom: "1px solid var(--color-border)",
-          display: "flex",
-          alignItems: "center",
-          padding: collapsed ? "0 12px" : "0 16px",
-          gap: 10,
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: "var(--radius-sm)",
-            background: "var(--color-accent)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Building2 size={14} strokeWidth={1.5} color="#fff" />
+      {/* Desktop fixed sidebar */}
+      <div className="hidden md:block" style={{ width: 62, flexShrink: 0 }}>
+        <div style={{ position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 30 }}>
+          {sidebarContent}
         </div>
-        {!collapsed && (
-          <span
-            style={{
-              fontSize: "var(--text-base)",
-              fontFamily: "var(--font-display)",
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              letterSpacing: "-0.02em",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {firm?.name ?? "ArchStudio"}
-          </span>
-        )}
       </div>
 
-      {/* Nav groups */}
-      <nav
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-          padding: collapsed ? "10px 6px" : "10px 8px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-        }}
-      >
-        {navGroups.map((group) => {
-          const visibleItems = group.items.filter(
-            (item) => !item.allowedRoles || (user && item.allowedRoles.includes(user.role))
-          );
-          if (visibleItems.length === 0) return null;
-          return (
-            <div key={group.label} style={{ marginBottom: collapsed ? 6 : 10 }}>
-              {!collapsed && (
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    color: "var(--color-text-muted)",
-                    padding: "6px 8px 4px",
-                  }}
-                >
-                  {group.label}
-                </span>
-              )}
-              {collapsed && (
-                <div
-                  style={{
-                    height: 1,
-                    background: "var(--color-border)",
-                    margin: "4px 4px 6px",
-                  }}
-                />
-              )}
-              {visibleItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                      onClick={() => onCloseMobile?.()}
-                    title={collapsed ? item.label : undefined}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: collapsed ? "8px" : "7px 10px",
-                      borderRadius: "var(--radius-sm)",
-                      background: active ? "var(--color-accent-muted)" : "transparent",
-                      color: active ? "var(--color-accent)" : "var(--color-text-muted)",
-                      fontSize: "var(--text-sm)",
-                      fontWeight: active ? 500 : 400,
-                      textDecoration: "none",
-                      transition: "all var(--duration-fast)",
-                      whiteSpace: "nowrap",
-                      justifyContent: collapsed ? "center" : "flex-start",
-                      position: "relative",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!active) {
-                        e.currentTarget.style.background = "var(--color-bg-card-hover)";
-                        e.currentTarget.style.color = "var(--color-text-primary)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!active) {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "var(--color-text-muted)";
-                      }
-                    }}
-                  >
-                    {/* Active indicator */}
-                    {active && (
-                      <span
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          top: "25%",
-                          height: "50%",
-                          width: 2,
-                          background: "var(--color-accent)",
-                          borderRadius: "0 2px 2px 0",
-                        }}
-                      />
-                    )}
-                    <span style={{ flexShrink: 0 }}>{item.icon}</span>
-                    {!collapsed && <span>{item.label}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* User card + collapse toggle */}
-      <div
-        style={{
-          borderTop: "1px solid var(--color-border)",
-          padding: collapsed ? "10px 6px" : "10px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          flexShrink: 0,
-        }}
-      >
-        {/* Collapse toggle */}
-        <button
-          onClick={onToggle}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: collapsed ? "center" : "flex-end",
-            gap: 6,
-            padding: "6px",
-            borderRadius: "var(--radius-sm)",
-            background: "transparent",
-            border: "none",
-            color: "var(--color-text-muted)",
-            cursor: "pointer",
-            fontSize: "var(--text-xs)",
-            transition: "all var(--duration-fast)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--color-bg-card-hover)";
-            e.currentTarget.style.color = "var(--color-text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--color-text-muted)";
-          }}
-        >
-          {collapsed ? <ChevronRight size={14} strokeWidth={1.5} /> : (
-            <>
-              <span>Collapse</span>
-              <ChevronLeft size={14} strokeWidth={1.5} />
-            </>
-          )}
-        </button>
-
-        {/* User card */}
-        {user && (
+      {/* Mobile drawer overlay */}
+      {mobileOpen && (
+        <div className="md:hidden" style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex" }}>
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
-            <Avatar
-              name={user.name}
-              color={user.avatarColor}
-              initials={user.avatarInitials}
-              size="sm"
-            />
-            {!collapsed && (
-              <div style={{ overflow: "hidden" }}>
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 500,
-                    color: "var(--color-text-primary)",
-                    margin: 0,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {user.name}
-                </p>
-                <p
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-muted)",
-                    margin: 0,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {user.role.replace("_", " ")}
-                </p>
-              </div>
-            )}
+            style={{ position: "fixed", inset: 0, background: "rgba(0, 0, 0, 0.7)" }}
+            onClick={onCloseMobile}
+          />
+          <div style={{ position: "relative", zIndex: 61 }}>
+            {sidebarContent}
           </div>
-        )}
-      </div>
-    </aside>
+        </div>
+      )}
     </>
   );
 }
+
+export default Sidebar;

@@ -27,11 +27,17 @@ model Firm {
   enabledFeatures    String[] @default(["DASHBOARD", "PROJECTS", "TASKS", "STAFF", "ATTENDANCE"])
   createdAt          DateTime @default(now())
 
+  timezone           String   @default("Asia/Kolkata")
+  officeStartTime    String   @default("09:15")
+  annualLeaveQuota   Int      @default(21)
+  workweekDays       Int[]    @default([1, 2, 3, 4, 5])
+
   users            User[]
   projects         Project[]
   projectTemplates ProjectTemplate[]
   clients          Client[]
   activityLogs     ActivityLog[]
+  leaveRequests    LeaveRequest[]
 
 }
 
@@ -65,6 +71,8 @@ model User {
   reviewCycles       TaskReviewCycle[]
   assignmentOverridesAuthored TaskAssignmentOverride[] @relation("OverrideAuthor")
   assignmentOverridesTargeted TaskAssignmentOverride[] @relation("OverrideTarget")
+  leaveRequests               LeaveRequest[]           @relation("UserLeaveRequests")
+  reviewedLeaveRequests       LeaveRequest[]           @relation("LeaveReviewer")
 
   @@index([firmId])
 }
@@ -150,7 +158,7 @@ model ProjectStage {
   order                    Int
   status                   String    @default("pending") // pending, in_progress, completed, blocked
   isClientApprovalRequired Boolean   @default(false)
-  clientApprovalStatus     String? // pending, approved, revision_requested
+  clientApprovalStatus     String?   // pending, approved, revision_requested
   clientApprovalNote       String?
   clientApprovedAt         DateTime?
   startDate                DateTime?
@@ -158,11 +166,16 @@ model ProjectStage {
   actualEndDate            DateTime?
   description              String?
   isCustom                 Boolean   @default(false)
+  // ── P2-A: archive support and optimistic concurrency ──
+  isArchived               Boolean   @default(false)
+  archivedAt               DateTime?
   createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   tasks Task[]
 
   @@index([projectId])
+  @@index([projectId, isArchived])
 }
 
 // ─── TASKS ─────────────────────────────────────────────────────────────────
@@ -184,16 +197,19 @@ model Task {
   status         String        @default("todo") // todo, in_progress, review, approved, done, blocked
   priority       String        @default("normal") // low, normal, high
   dueDate        DateTime?
-    startedAt      DateTime?
+  startedAt      DateTime?
   startDate      DateTime?
   completedAt    DateTime?
-  approvalStatus String? // pending, approved, revision_requested, rejected
+  approvalStatus String?       // pending, approved, revision_requested, rejected
   approvalNote   String?
   approvedById   String?
   assignmentOverrides TaskAssignmentOverride[]
   isBlocked      Boolean       @default(false)
   blockedReason  String?
   tags           String[]
+  // ── P2-A: archive support ──
+  isArchived     Boolean       @default(false)
+  archivedAt     DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -204,6 +220,7 @@ model Task {
   @@index([projectId])
   @@index([assigneeId])
   @@index([status])
+  @@index([projectId, isArchived])
 }
 
 // ─── SUBTASKS ──────────────────────────────────────────────────────────────
@@ -328,6 +345,37 @@ model BreakRecord {
   @@index([sessionId])
 }
 
+// ─── LEAVE MANAGEMENT ───────────────────────────────────────────────────────
+// Firm-scoped leave requests with complete approval audit history.
+
+model LeaveRequest {
+  id            String    @id @default(uuid())
+  firmId        String
+  firm          Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
+  type          String    @default("annual") // annual | sick | unpaid | casual | other
+  startDate     String    // YYYY-MM-DD
+  endDate       String    // YYYY-MM-DD
+  days          Int       // Business days count
+  reason        String?
+  status        String    @default("pending") // pending | approved | rejected | cancelled
+  reviewedById  String?
+  reviewer      User?     @relation("LeaveReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt    DateTime?
+  rejectionNote String?
+  cancelledAt   DateTime?
+  cancelledById String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([firmId])
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([firmId, status])
+}
+
 // ─── PROJECT TEMPLATES ─────────────────────────────────────────────────────
 
 model ProjectTemplate {
@@ -338,14 +386,17 @@ model ProjectTemplate {
   description                  String?
   feeStructure                 String   @default("per_stage") // lump_sum, percentage, per_stage
   defaultFileRequestWindowDays Int      @default(7)
-  isDefault                    Boolean  @default(false)
-  createdAt                    DateTime @default(now())
-  updatedAt                    DateTime @updatedAt
+  isDefault                    Boolean   @default(false)
+  isArchived                   Boolean   @default(false)
+  archivedAt                   DateTime?
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
 
   stages   TemplateStage[]
   projects Project[]
 
   @@index([firmId])
+  @@index([firmId, isArchived])
 }
 
 model TemplateStage {
@@ -379,7 +430,26 @@ model TemplateTask {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  // ── P2-A: reusable subtask definitions ──
+  subtasks TemplateSubtask[]
+
   @@index([stageId])
+}
+
+// ─── TEMPLATE SUBTASKS ─────────────────────────────────────────────────────
+// P2-A: Reusable subtask definitions that travel with a TemplateTask.
+// When a project is instantiated these become Subtask rows on the Task.
+
+model TemplateSubtask {
+  id        String       @id @default(uuid())
+  taskId    String
+  task      TemplateTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([taskId])
 }
 
 // ─── TASK REVISIONS ────────────────────────────────────────────────────────
@@ -421,11 +491,6 @@ model TaskAssignmentOverride {
   @@index([firmId])
   @@index([teamLeadId])
 }
-
-
-
-
-
 
 
 // --- PLATFORM ADMIN ----------------------------------------------------------

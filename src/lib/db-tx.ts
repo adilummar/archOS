@@ -1,6 +1,6 @@
 import { prisma } from "./db";
 import { Prisma } from "@prisma/client";
-import { AuthContext } from "@/services/auth.service";
+import type { AuthContext } from "@/services/auth.service";
 
 export class TenantSecurityError extends Error {
   constructor(message: string) {
