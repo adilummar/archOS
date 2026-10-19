@@ -53,54 +53,58 @@ export function ConfirmDialog({
         left: 0,
         right: 0,
         bottom: 0,
-        background: "rgba(0, 0, 0, 0.6)",
+        background: "rgba(0, 0, 0, 0.65)",
         zIndex: 9999,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
         backdropFilter: "blur(4px)",
+        fontFamily: "var(--font-sans)",
       }}
     >
       <div 
         role="dialog"
         aria-modal="true"
+        className="t"
         style={{
-          background: "var(--color-bg-card)",
-          borderRadius: "var(--radius-lg)",
+          background: "linear-gradient(160deg, #3C3936 0%, #2B2927 100%)",
+          borderRadius: "12px",
           width: "100%",
           maxWidth: 440,
-          boxShadow: "var(--shadow-modal)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          boxShadow: "0 16px 36px rgba(0, 0, 0, 0.7)",
           overflow: "hidden",
+          padding: 0,
           animation: "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
         {/* Header */}
         <div style={{
-          padding: "24px 24px 16px",
+          padding: "24px 24px 18px",
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
         }}>
-          <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
             <div style={{
-              width: 40,
-              height: 40,
+              width: 38,
+              height: 38,
               borderRadius: "50%",
-              background: isDestructive ? "var(--color-destructive-muted)" : "var(--color-accent-muted)",
-              color: isDestructive ? "var(--color-destructive)" : "var(--color-accent)",
+              background: isDestructive ? "rgba(255, 107, 94, 0.15)" : "rgba(111, 220, 149, 0.15)",
+              color: isDestructive ? "#FF6B5E" : "#6FDC95",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}>
-              <AlertTriangle size={20} />
+              <AlertTriangle size={18} />
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-text-primary)" }}>
+              <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 500, color: "#FFFFFF" }}>
                 {title}
               </h2>
-              <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
+              <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#CFCAC4", lineHeight: 1.5 }}>
                 {description}
               </p>
             </div>
@@ -111,54 +115,62 @@ export function ConfirmDialog({
               background: "none", 
               border: "none", 
               cursor: "pointer", 
-              color: "var(--color-text-muted)",
+              color: "#9E9891",
               padding: 4,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              borderRadius: "var(--radius-sm)",
+              borderRadius: "50%",
             }}
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         {/* Footer */}
         <div style={{
           padding: "16px 24px",
-          background: "var(--color-bg-canvas)",
-          borderTop: "1px solid var(--color-border)",
+          background: "rgba(0, 0, 0, 0.22)",
+          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
           display: "flex",
           justifyContent: "flex-end",
-          gap: 12,
+          gap: 10,
         }}>
           <button
             onClick={onCancel}
             style={{
-              padding: "10px 16px",
-              borderRadius: "var(--radius-sm)",
-              background: "transparent",
-              color: "var(--color-text-primary)",
-              border: "1px solid var(--color-border)",
-              fontSize: "var(--text-sm)",
+              padding: "9px 18px",
+              borderRadius: "99px",
+              background: "rgba(255, 255, 255, 0.08)",
+              color: "#F3F1EE",
+              border: "none",
+              fontSize: "12px",
               fontWeight: 500,
+              minHeight: "38px",
               cursor: "pointer",
+              transition: "opacity 0.15s ease",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             style={{
-              padding: "10px 16px",
-              borderRadius: "var(--radius-sm)",
-              background: isDestructive ? "var(--color-destructive)" : "var(--color-accent)",
-              color: "#fff",
+              padding: "9px 20px",
+              borderRadius: "99px",
+              background: isDestructive ? "#FF6B5E" : "linear-gradient(160deg, #2F7556 0%, #25563F 100%)",
+              color: "#FFFFFF",
               border: "none",
-              fontSize: "var(--text-sm)",
+              fontSize: "12px",
               fontWeight: 500,
+              minHeight: "38px",
               cursor: "pointer",
+              transition: "opacity 0.15s ease",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
             {confirmLabel}
           </button>
@@ -169,7 +181,7 @@ export function ConfirmDialog({
         @keyframes scaleIn {
           from {
             opacity: 0;
-            transform: scale(0.95);
+            transform: scale(0.96);
           }
           to {
             opacity: 1;
