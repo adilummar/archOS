@@ -1,4 +1,4 @@
-import { AuthContext } from "./auth.service";
+import type { AuthContext } from "./auth.service";
 import { prisma } from "@/lib/db";
 import { withAuthTx } from "@/lib/db-tx";
 
@@ -10,10 +10,59 @@ function toDateTime(val: any): Date | undefined {
   return new Date(val);
 }
 
+export async function applySingleStaffAutoAssignment(tx: any, projectId: string, firmId: string) {
+  const projectStaff = await tx.projectStaff.findMany({
+    where: { projectId },
+    include: { user: true }
+  });
+  const activeStaff = projectStaff.filter((ps: any) => ps.user.role === 'staff' && ps.user.status === 'active' && ps.user.firmId === firmId);
+  if (activeStaff.length === 1) {
+    await tx.task.updateMany({
+      where: {
+        projectId,
+        firmId,
+        status: 'active',
+        assigneeId: null,
+        isArchived: false
+      },
+      data: {
+        assigneeId: activeStaff[0].userId
+      }
+    });
+  }
+}
+
 export async function getTasksByProject(ctx: AuthContext, projectId: string) {
   return withAuthTx(ctx, async (tx) => {
+    let projectWhere: any = {
+      id: projectId,
+      firmId: ctx.firmId,
+    };
+
+    if (ctx.role === "admin" || ctx.role === "super_admin" || ctx.role === "accounts") {
+      // Admin: firm-scoped access
+    } else if (ctx.role === "team_lead") {
+      projectWhere.OR = [
+        { teamLeadId: ctx.userId },
+        { staffMembers: { some: { userId: ctx.userId } } }
+      ];
+    } else if (ctx.role === "staff") {
+      projectWhere.staffMembers = { some: { userId: ctx.userId } };
+    } else {
+      throw new Error("Project not found");
+    }
+
+    const project = await tx.project.findFirst({
+      where: projectWhere,
+      select: { id: true }
+    });
+
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
     return tx.task.findMany({
-      where: { projectId },
+      where: { projectId, firmId: ctx.firmId, isArchived: false },
       include: {
         assignee: { select: { id: true, name: true, avatarInitials: true, avatarColor: true } },
         assigner: { select: { id: true, name: true } },
@@ -28,7 +77,7 @@ export async function getTasksByProject(ctx: AuthContext, projectId: string) {
 
 export async function getAllTasksByFirm(ctx: AuthContext, firmId: string) {
   return withAuthTx(ctx, async (tx) => {
-    let where: any = { firmId };
+    let where: any = { firmId, isArchived: false };
     if (ctx.role !== "admin") {
       where = {
         ...where,
@@ -48,6 +97,8 @@ export async function getAllTasksByFirm(ctx: AuthContext, firmId: string) {
     return tx.task.findMany({
       where,
       include: {
+        project: { select: { id: true, name: true, stages: { select: { id: true, name: true, order: true } } } },
+        stage: { select: { id: true, name: true } },
         assignee: { select: { id: true, name: true, avatarInitials: true, avatarColor: true } },
         subtasks: { orderBy: { createdAt: "asc" } },
         reviewCycles: true,
@@ -65,7 +116,7 @@ export async function getTasksByUser(ctx: AuthContext, userId: string, firmId: s
       if (dbUser) realUserId = dbUser.id;
     }
     return tx.task.findMany({
-      where: { assigneeId: realUserId, firmId },
+      where: { assigneeId: realUserId, firmId, isArchived: false },
       include: {
         project: { select: { name: true } },
         subtasks: { orderBy: { createdAt: "asc" } },
@@ -91,11 +142,17 @@ export async function createTask(ctx: AuthContext, data: any) {
         description: "Task created",
       },
     });
-    return task;
+    
+    // Auto-assign if single staff project and task is active
+    if (task.status === 'active') {
+      await applySingleStaffAutoAssignment(tx, data.projectId, ctx.firmId);
+    }
+    
+    return tx.task.findUnique({ where: { id: task.id } }); // Return updated task
   });
 }
 
-export async function updateTask(ctx: AuthContext, taskId: string, data: any, firmId: string, actorId: string) {
+export async function updateTask(ctx: AuthContext, taskId: string, data: any, _firmId?: string, _actorId?: string) {
   return withAuthTx(ctx, async (tx) => {
     const existing = await tx.task.findUnique({ where: { id: taskId } });
     if (!existing) throw new Error('Task not found');
@@ -108,8 +165,8 @@ export async function updateTask(ctx: AuthContext, taskId: string, data: any, fi
     const task = await tx.task.update({ where: { id: taskId }, data: updateData });
     await tx.activityLog.create({
       data: {
-        firmId,
-        userId: actorId,
+        firmId: ctx.firmId,
+        userId: ctx.userId,
         projectId: task.projectId,
         entity: "task",
         entityId: task.id,
@@ -121,24 +178,139 @@ export async function updateTask(ctx: AuthContext, taskId: string, data: any, fi
   });
 }
 
-export async function deleteTask(ctx: AuthContext, taskId: string, firmId: string, actorId: string) {
+export async function deleteTask(ctx: AuthContext, taskId: string, _firmId?: string, _actorId?: string) {
   if (ctx.role !== 'admin' && ctx.role !== 'team_lead') throw new Error('Unauthorized: Staff cannot delete tasks');
   return withAuthTx(ctx, async (tx) => {
-    const existing = await tx.task.findUnique({ where: { id: taskId } });
+    const existing = await tx.task.findFirst({
+      where: { id: taskId, firmId: ctx.firmId },
+      include: {
+        project: { select: { id: true, teamLeadId: true } },
+        reviewCycles: { select: { id: true }, take: 1 },
+        assignmentOverrides: { select: { id: true }, take: 1 },
+      },
+    });
+    if (!existing) throw new Error("Task not found");
+
+    if (ctx.role === "team_lead" && existing.project.teamLeadId !== ctx.userId) {
+      throw new Error("Unauthorized: Only designated Team Lead can delete tasks in this project");
+    }
+
+    const hasTimeSegments = await tx.taskTimeSegment.findFirst({
+      where: { taskId },
+      select: { id: true },
+    });
+    if (hasTimeSegments) {
+      throw new Error("Cannot hard-delete task with logged time segments; archive it instead.");
+    }
+
+    if (existing.reviewCycles.length > 0 || existing.assignmentOverrides.length > 0) {
+      throw new Error("Cannot hard-delete task with review or assignment history; archive it instead.");
+    }
+
+    if (existing.status !== "future" && existing.status !== "todo") {
+      throw new Error("Cannot hard-delete task with active or completed status; archive it instead.");
+    }
+
+    await tx.subtask.deleteMany({ where: { taskId } });
     await tx.task.delete({ where: { id: taskId } });
-    if (existing) {
-      await tx.activityLog.create({
-        data: {
-          firmId,
-          userId: actorId,
-          projectId: existing.projectId,
-          entity: "task",
-          entityId: taskId,
-          action: "deleted",
-          description: "Task deleted",
-        },
+
+    await tx.activityLog.create({
+      data: {
+        firmId: ctx.firmId,
+        userId: ctx.userId,
+        projectId: existing.projectId,
+        entity: "task",
+        entityId: taskId,
+        action: "deleted",
+        description: `Task "${existing.title}" deleted`,
+      },
+    });
+    return { success: true, deleted: true };
+  });
+}
+
+export async function archiveTask(ctx: AuthContext, taskId: string) {
+  if (ctx.role !== 'admin' && ctx.role !== 'team_lead') throw new Error('Unauthorized: Staff cannot archive tasks');
+  return withAuthTx(ctx, async (tx) => {
+    const existing = await tx.task.findFirst({
+      where: { id: taskId, firmId: ctx.firmId },
+      include: { project: { select: { id: true, teamLeadId: true } } },
+    });
+    if (!existing) throw new Error("Task not found");
+
+    if (ctx.role === "team_lead" && existing.project.teamLeadId !== ctx.userId) {
+      throw new Error("Unauthorized: Only designated Team Lead can archive tasks in this project");
+    }
+
+    if (existing.isArchived) {
+      return existing;
+    }
+
+    const task = await tx.task.update({
+      where: { id: taskId },
+      data: {
+        isArchived: true,
+        archivedAt: new Date(),
+      },
+    });
+
+    await tx.activityLog.create({
+      data: {
+        firmId: ctx.firmId,
+        userId: ctx.userId,
+        projectId: existing.projectId,
+        entity: "task",
+        entityId: taskId,
+        action: "archived",
+        description: `Task "${existing.title}" archived`,
+      },
+    });
+
+    return task;
+  });
+}
+
+export async function reorderStageTasks(ctx: AuthContext, stageId: string, orderedTaskIds: string[]) {
+  if (ctx.role !== 'admin' && ctx.role !== 'team_lead') throw new Error('Unauthorized');
+  if (!orderedTaskIds || orderedTaskIds.length === 0) throw new Error("orderedTaskIds must be a non-empty array");
+
+  return withAuthTx(ctx, async (tx) => {
+    const stage = await tx.projectStage.findFirst({
+      where: { id: stageId },
+      include: { project: { select: { id: true, firmId: true, teamLeadId: true } } },
+    });
+    if (!stage || stage.project.firmId !== ctx.firmId) throw new Error("Stage not found");
+
+    if (ctx.role === "team_lead" && stage.project.teamLeadId !== ctx.userId) {
+      throw new Error("Unauthorized: Only designated Team Lead can reorder tasks in this project");
+    }
+
+    const tasks = await tx.task.findMany({
+      where: { id: { in: orderedTaskIds }, stageId, firmId: ctx.firmId },
+      select: { id: true },
+    });
+    if (tasks.length !== orderedTaskIds.length) {
+      throw new Error("Invalid task list: one or more tasks do not belong to this stage");
+    }
+
+    const tempOffset = 10000;
+    for (let i = 0; i < orderedTaskIds.length; i++) {
+      await tx.task.update({
+        where: { id: orderedTaskIds[i] },
+        data: { order: tempOffset + i },
       });
     }
+
+    const updatedTasks = [];
+    for (let i = 0; i < orderedTaskIds.length; i++) {
+      const updated = await tx.task.update({
+        where: { id: orderedTaskIds[i] },
+        data: { order: i + 1 },
+      });
+      updatedTasks.push(updated);
+    }
+
+    return updatedTasks;
   });
 }
 
@@ -230,15 +402,131 @@ export async function assignTaskWithOverride(ctx: AuthContext, data: any) {
   });
 }
 
+export async function getTaskById(ctx: AuthContext, taskId: string) {
+  return withAuthTx(ctx, async (tx) => {
+    const task = await tx.task.findUnique({
+      where: { id: taskId },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            firmId: true,
+            teamLeadId: true,
+            staffMembers: { select: { userId: true } },
+            stages: { select: { id: true, name: true, order: true } },
+          },
+        },
+        stage: { select: { id: true, name: true, order: true } },
+        assignee: { select: { id: true, name: true, avatarInitials: true, avatarColor: true } },
+        assigner: { select: { id: true, name: true } },
+        subtasks: { orderBy: { createdAt: "asc" } },
+        reviewCycles: { orderBy: { revisionNumber: "asc" } },
+      },
+    });
+
+    if (!task || task.firmId !== ctx.firmId) {
+      throw Object.assign(new Error("Task not found"), { statusCode: 404 });
+    }
+
+    // Role-based scoping
+    const isAdmin = ctx.role === "admin" || ctx.role === "super_admin" || ctx.role === "accounts";
+    const isLead = ctx.role === "team_lead" && (task.project.teamLeadId === ctx.userId || task.project.staffMembers.some((sm: any) => sm.userId === ctx.userId));
+    const isStaffMember = ctx.role === "staff" && (task.assigneeId === ctx.userId || task.project.staffMembers.some((sm: any) => sm.userId === ctx.userId));
+
+    if (!isAdmin && !isLead && !isStaffMember) {
+      throw Object.assign(new Error("Task not found"), { statusCode: 404 });
+    }
+
+    return task;
+  });
+}
+
 export async function addSubtask(ctx: AuthContext, data: any) {
   return withAuthTx(ctx, async (tx) => tx.subtask.create({ data }));
 }
 
-export async function toggleSubtask(ctx: AuthContext, subtaskId: string, completed: boolean) {
-  return withAuthTx(ctx, async (tx) => tx.subtask.update({
-    where: { id: subtaskId },
-    data: { completed, completedAt: completed ? new Date() : null },
-  }));
+export async function toggleSubtask(ctx: AuthContext, subtaskId: string, completed?: boolean) {
+  return withAuthTx(ctx, async (tx) => {
+    const subtask = await tx.subtask.findUnique({
+      where: { id: subtaskId },
+      include: {
+        task: {
+          include: {
+            project: {
+              include: {
+                staffMembers: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!subtask || subtask.task.firmId !== ctx.firmId) {
+      throw Object.assign(new Error("Subtask not found"), { statusCode: 404 });
+    }
+
+    // Role-based authorization
+    const isAdmin = ctx.role === "admin" || ctx.role === "super_admin";
+    const isLead = ctx.role === "team_lead" && (subtask.task.project.teamLeadId === ctx.userId || subtask.task.project.staffMembers.some((sm: any) => sm.userId === ctx.userId));
+    const isAssignee = subtask.task.assigneeId === ctx.userId;
+    const isProjectStaff = subtask.task.project.staffMembers.some((sm: any) => sm.userId === ctx.userId);
+
+    if (!isAdmin && !isLead && !isAssignee && !isProjectStaff) {
+      throw Object.assign(new Error("Unauthorized"), { statusCode: 403 });
+    }
+
+    const nextCompleted = typeof completed === "boolean" ? completed : !subtask.completed;
+    const completedAt = nextCompleted ? new Date() : null;
+
+    return tx.subtask.update({
+      where: { id: subtaskId },
+      data: {
+        completed: nextCompleted,
+        completedAt,
+      },
+    });
+  });
+}
+
+export async function deleteSubtask(ctx: AuthContext, subtaskId: string) {
+  return withAuthTx(ctx, async (tx) => {
+    const subtask = await tx.subtask.findUnique({
+      where: { id: subtaskId },
+      include: {
+        task: {
+          include: {
+            project: {
+              include: {
+                staffMembers: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!subtask || subtask.task.firmId !== ctx.firmId) {
+      throw Object.assign(new Error("Subtask not found"), { statusCode: 404 });
+    }
+
+    // Role-based authorization: Admin, Team Lead of the project, Task Assignee, or Subtask Creator
+    const isAdmin = ctx.role === "admin" || ctx.role === "super_admin";
+    const isLead = ctx.role === "team_lead" && (subtask.task.project.teamLeadId === ctx.userId || subtask.task.project.staffMembers.some((sm: any) => sm.userId === ctx.userId));
+    const isAssignee = subtask.task.assigneeId === ctx.userId;
+    const isCreator = subtask.createdById === ctx.userId;
+
+    if (!isAdmin && !isLead && !isAssignee && !isCreator) {
+      throw Object.assign(new Error("Unauthorized"), { statusCode: 403 });
+    }
+
+    await tx.subtask.delete({
+      where: { id: subtaskId },
+    });
+
+    return { success: true, deleted: true };
+  });
 }
 
 
@@ -322,6 +610,7 @@ export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate
     });
     
     if (!task) throw new Error('Task not found');
+    if (task.firmId !== ctx.firmId) throw new Error('Task does not belong to this firm');
     if (task.status !== 'active' && task.status !== 'todo') throw new Error('Only active or todo tasks can be assigned');
     if (task.project.teamLeadId !== ctx.userId && ctx.role !== 'admin') {
       throw new Error('Unauthorized');
@@ -351,6 +640,12 @@ export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate
        throw new Error('Assignee is not a member of this project');
     }
 
+    const assigneeUser = await tx.user.findUnique({ where: { id: finalAssigneeId } });
+    if (!assigneeUser) throw new Error('Assignee not found');
+    if (assigneeUser.firmId !== ctx.firmId) throw new Error('Assignee does not belong to this firm');
+    if (assigneeUser.status !== 'active') throw new Error('Assignee must be an active user');
+    if (assigneeUser.role !== 'staff') throw new Error('Assignee must be a staff member');
+
     const updatedTask = await tx.task.update({
       where: { id: taskId },
       data: {
@@ -378,42 +673,53 @@ export async function assignActiveTask(ctx: AuthContext, taskId: string, dueDate
   });
 }
 
-export async function startTask(ctx: AuthContext, taskId: string) {
-  return withAuthTx(ctx, async (tx) => {
-    const task = await tx.task.findUnique({ where: { id: taskId } });
-    if (!task) throw new Error('Task not found');
-    if (task.assigneeId !== ctx.userId && ctx.role !== 'admin') {
-      throw new Error('Unauthorized');
-    }
-    if (task.status === 'in_progress') {
-      return task;
-    }
-    if (!['assigned', 'revision_requested'].includes(task.status)) {
-      throw new Error('Task cannot be started from current state');
-    }
+/**
+ * Internal: starts a task inside an EXISTING transaction.
+ * Used by checkIn (attendance) and the public startTask endpoint.
+ * Startable states: assigned | active | revision_requested
+ * 'in_progress' is a no-op (idempotent).
+ */
+export async function startTaskTx(tx: any, ctx: AuthContext, taskId: string) {
+  const task = await tx.task.findUnique({ where: { id: taskId } });
+  if (!task) throw new Error('Task not found');
+  if (task.firmId !== ctx.firmId) throw new Error('Task does not belong to this firm');
+  if (task.assigneeId !== ctx.userId && ctx.role !== 'admin') {
+    throw new Error('Unauthorized: task is not assigned to you');
+  }
+  if (task.status === 'in_progress') {
+    return task; // idempotent
+  }
+  if (!['assigned', 'active', 'revision_requested'].includes(task.status)) {
+    throw new Error(`Task cannot be started from state: ${task.status}`);
+  }
 
-    const updatedTask = await tx.task.update({
-      where: { id: taskId },
-      data: {
-        status: 'in_progress',
-        startedAt: task.startedAt ?? new Date(),
-      }
-    });
-
-    await tx.activityLog.create({
-      data: {
-        firmId: task.firmId,
-        userId: ctx.userId,
-        projectId: task.projectId,
-        entity: 'task',
-        entityId: taskId,
-        action: 'started',
-        description: 'Task started by staff'
-      }
-    });
-
-    return updatedTask;
+  const now = new Date();
+  const updatedTask = await tx.task.update({
+    where: { id: taskId },
+    data: {
+      status: 'in_progress',
+      startedAt: task.startedAt ?? now,
+    }
   });
+
+  await tx.activityLog.create({
+    data: {
+      firmId: task.firmId,
+      userId: ctx.userId,
+      projectId: task.projectId,
+      entity: 'task',
+      entityId: taskId,
+      action: 'started',
+      description: 'Task started by staff'
+    }
+  });
+
+  return updatedTask;
+}
+
+/** Public endpoint wrapper: starts a task in its own transaction. */
+export async function startTask(ctx: AuthContext, taskId: string) {
+  return withAuthTx(ctx, async (tx) => startTaskTx(tx, ctx, taskId));
 }
 
 export async function submitTaskForReview(ctx: AuthContext, taskId: string) {
@@ -426,6 +732,28 @@ export async function submitTaskForReview(ctx: AuthContext, taskId: string) {
     if (!['active', 'todo', 'assigned', 'in_progress', 'revision_requested', 'submitted_for_review', 'review'].includes(task.status)) {
       throw new Error('Task cannot be submitted from current state');
     }
+
+    const now = new Date();
+
+    // ── Close any open TaskTimeSegment for this task by this staff ────────────
+    // Find open segments for this taskId belonging to this user's sessions
+    const openSegments = await tx.taskTimeSegment.findMany({
+      where: {
+        taskId,
+        endTime: null,
+        session: { userId: ctx.userId }
+      }
+    });
+    for (const seg of openSegments) {
+      const durationMinutes = Math.floor(
+        (now.getTime() - new Date(seg.startTime).getTime()) / 60000
+      );
+      await tx.taskTimeSegment.update({
+        where: { id: seg.id },
+        data: { endTime: now, durationMinutes }
+      });
+    }
+    // ──────────────────────────────────────────────────────────────────────────
 
     const updatedTask = await tx.task.update({
       where: { id: taskId },
@@ -561,10 +889,11 @@ export async function approveTaskSequence(ctx: AuthContext, taskId: string) {
 
 async function activateNextTask(ctx: AuthContext, tx: any, projectId: string) {
   const stages = await tx.projectStage.findMany({
-    where: { projectId },
+    where: { projectId, isArchived: false },
     orderBy: { order: 'asc' },
     include: {
       tasks: {
+        where: { isArchived: false },
         orderBy: { order: 'asc' }
       }
     }
@@ -603,6 +932,9 @@ async function activateNextTask(ctx: AuthContext, tx: any, projectId: string) {
       where: { id: nextTaskToActivate.id },
       data: { status: 'active' }
     });
+    
+    // Auto-assign if single staff project
+    await applySingleStaffAutoAssignment(tx, projectId, ctx.firmId);
   }
 }
 

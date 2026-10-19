@@ -30,14 +30,10 @@ export async function checkIn(data: {
   return result;
 }
 
-/** @deprecated Migrated to TanStack Query */
+/** @deprecated Migrated to TanStack Query — use POST /api/v1/attendance/switch instead */
 export async function switchTask(data: {
-  sessionId: string;
-  firmId: string;
-  userId: string;
-  newProjectId: string;
-  newTaskId: string;
-  markCurrentTaskDone: boolean;
+  projectId: string;
+  taskId: string;
 }) {
   const ctx = await getCtx();
   const result = await Service.switchTask(ctx, data);
@@ -47,14 +43,14 @@ export async function switchTask(data: {
 /** @deprecated Migrated to TanStack Query */
 export async function takeBreak(sessionId: string) {
   const ctx = await getCtx();
-  const result = await Service.takeBreak(ctx, sessionId);
+  const result = await Service.startBreak(ctx, sessionId);
   return result;
 }
 
 /** @deprecated Migrated to TanStack Query */
 export async function resumeWork(sessionId: string) {
   const ctx = await getCtx();
-  const result = await Service.resumeWork(ctx, sessionId);
+  const result = await Service.endBreak(ctx, sessionId);
   return result;
 }
 

@@ -6,7 +6,16 @@ export const attendanceKeys = {
   mine: (firmId: string, userId: string) => ['attendance', firmId, userId] as const,
   history: (firmId: string, userId: string) => ['attendance-history', firmId, userId] as const,
   breakdown: (sessionId: string) => ['attendance-breakdown', sessionId] as const,
+  weekly: (firmId: string) => ['attendance-weekly', firmId] as const,
 };
+
+export function useWeeklyAttendance(firmId: string) {
+  return useQuery({
+    queryKey: attendanceKeys.weekly(firmId),
+    queryFn: () => api.get<any[]>('/api/v1/attendance/weekly'),
+    enabled: !!firmId,
+  });
+}
 
 export function useMyAttendance(firmId: string, userId: string) {
   return useQuery({
@@ -37,8 +46,10 @@ export function useAttendanceMutations(firmId: string, userId: string) {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: attendanceKeys.mine(firmId, userId) });
     queryClient.invalidateQueries({ queryKey: attendanceKeys.history(firmId, userId) });
-    // breakdown uses sessionId which might change, invalidating all breakdowns is safest or we can let it be
     queryClient.invalidateQueries({ queryKey: ['attendance-breakdown'] });
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    queryClient.invalidateQueries({ queryKey: attendanceKeys.weekly(firmId) });
+    queryClient.invalidateQueries({ queryKey: ['staff', firmId] });
   };
 
   return {
@@ -59,7 +70,13 @@ export function useAttendanceMutations(firmId: string, userId: string) {
       onSuccess: invalidate,
     }),
     switchTask: useMutation({
-      mutationFn: (data: { sessionId: string; projectId?: string; taskId?: string }) => api.post<any>(`/api/v1/attendance/switch?firmId=${firmId}`, data),
+      mutationFn: (data: { projectId: string; taskId: string }) =>
+        api.post<any>(`/api/v1/attendance/switch?firmId=${firmId}`, data),
+      onSuccess: invalidate,
+    }),
+    stopCounting: useMutation({
+      mutationFn: () =>
+        api.post<any>(`/api/v1/attendance/stop-counting?firmId=${firmId}`, {}),
       onSuccess: invalidate,
     }),
   };

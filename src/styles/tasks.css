@@ -1,0 +1,541 @@
+/* ============================================================================
+   Arch OS — Task Tab Design System (Task Tab Spec v1.0)
+   ========================================================================== */
+
+.tasks-wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
+  min-height: 100%;
+}
+
+.tasks-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.tasks-top h1 {
+  font-size: 20px;
+  margin: 0;
+  font-weight: 600;
+  color: var(--tx);
+  letter-spacing: -0.01em;
+}
+
+.tasks-top .sub {
+  color: var(--mu);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.tasks-btn {
+  background: var(--ac);
+  color: #0c1624;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+
+.tasks-btn:hover {
+  opacity: 0.9;
+}
+
+.tasks-btn.ghost {
+  background: transparent;
+  color: var(--tx);
+  border: 1px solid var(--line);
+}
+
+.tasks-btn.ghost:hover {
+  background: var(--panel2);
+}
+
+.tasks-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tasks-stat {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+}
+
+.tasks-stat b {
+  font-size: 26px;
+  font-weight: 600;
+  display: block;
+  line-height: 1.1;
+  color: var(--tx);
+}
+
+.tasks-stat span {
+  color: var(--mu);
+  font-size: 12.5px;
+}
+
+.tasks-stat small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--mu);
+}
+
+.tasks-stat.on {
+  border-color: var(--ac);
+  background: var(--panel2);
+}
+
+.tasks-stat.red b {
+  color: var(--red);
+}
+
+.tasks-stat.amb b {
+  color: var(--amb);
+}
+
+.tasks-stat.vio b {
+  color: var(--vio);
+}
+
+.tasks-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tasks-bar input,
+.tasks-bar select {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: var(--tx);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+.tasks-bar input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.tasks-bar input:focus,
+.tasks-bar select:focus {
+  border-color: var(--ac);
+}
+
+.tasks-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tasks-scroll {
+  overflow-x: auto;
+}
+
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 820px;
+}
+
+.tasks-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--mu);
+  font-size: 12.5px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tasks-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+tr.tasks-row {
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+tr.tasks-row:hover td {
+  background: var(--panel2);
+}
+
+tr.tasks-row.sel td {
+  background: var(--sel);
+}
+
+tr.tasks-row:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: -2px;
+}
+
+tr.tasks-grp td {
+  background: var(--bg);
+  color: var(--mu);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 12px;
+}
+
+.pri {
+  width: 4px;
+  padding: 0 !important;
+}
+
+.pri i {
+  display: block;
+  width: 4px;
+  height: 44px;
+}
+
+.proj {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  color: var(--tx);
+  background: transparent;
+}
+
+.av {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--tx);
+}
+
+.av u {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2d3a52;
+  display: grid;
+  place-items: center;
+  font: 600 10.5px system-ui, -apple-system, sans-serif;
+  text-decoration: none;
+  color: #FFFFFF;
+}
+
+.av.none {
+  color: var(--amb);
+}
+
+.av.none u {
+  background: transparent;
+  border: 1px dashed var(--amb);
+  color: var(--amb);
+}
+
+.late {
+  color: var(--red);
+  font-weight: 500;
+}
+
+.soon {
+  color: var(--amb);
+}
+
+.flag {
+  font-size: 12px;
+  color: var(--vio);
+}
+
+.tm {
+  width: 90px;
+  height: 5px;
+  background: var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.tm i {
+  display: block;
+  height: 100%;
+  background: var(--ac);
+}
+
+.tm.over i {
+  background: var(--red);
+}
+
+.empty {
+  padding: 34px;
+  text-align: center;
+  color: var(--mu);
+}
+
+/* Drawer styles */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 900;
+}
+
+.scrim.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+aside {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(440px, 100%);
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  transform: translateX(100%);
+  transition: transform 0.22s ease;
+  display: flex;
+  flex-direction: column;
+  z-index: 901;
+  padding-top: env(safe-area-inset-top, 0px);
+  color: var(--tx);
+}
+
+aside.open {
+  transform: none;
+}
+
+.dh {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dh .r {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.x {
+  background: none;
+  border: 0;
+  color: var(--mu);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.x:hover {
+  color: var(--tx);
+}
+
+.dh input.ti {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 4px 6px;
+  margin-left: -6px;
+  color: var(--tx);
+  outline: none;
+}
+
+.dh input.ti:hover,
+.dh input.ti:focus {
+  border-color: var(--line);
+}
+
+.db {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px;
+}
+
+.g {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 560px) {
+  .g {
+    grid-template-columns: 1fr;
+  }
+}
+
+.db label {
+  display: block;
+  color: var(--mu);
+  font-size: 12.5px;
+  margin-bottom: 4px;
+}
+
+.f {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: var(--tx);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+.f:focus {
+  border-color: var(--ac);
+}
+
+textarea.f {
+  min-height: 84px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.sec {
+  margin: 18px 0 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--tx);
+}
+
+.seg {
+  display: flex;
+  gap: 6px;
+}
+
+.seg button {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--mu);
+  font-size: 13px;
+}
+
+.seg button.on {
+  color: var(--tx);
+  border-color: var(--ac);
+  background: var(--sel);
+}
+
+.time {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.time .big {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.time .tm {
+  width: 100%;
+  height: 6px;
+  margin: 8px 0;
+}
+
+.log {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.log button {
+  flex: 1;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px;
+  cursor: pointer;
+  color: var(--tx);
+  font-size: 12px;
+}
+
+.log button:hover {
+  background: var(--line);
+}
+
+.df {
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.df .mu {
+  flex: 1;
+  color: var(--mu);
+  font-size: 12.5px;
+}
+
+.chk {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.hint {
+  font-size: 12.5px;
+  color: var(--vio);
+  background: rgba(165, 140, 240, 0.1);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  aside {
+    transition: none !important;
+  }
+}
