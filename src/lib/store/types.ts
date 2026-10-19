@@ -134,7 +134,12 @@ export interface Task {
   createdAt: string; updatedAt: string
 }
 
-
+export interface TimeLog {
+  id: string; firmId: string; userId: string; projectId: string
+  stageId?: string; phase: string; startTime: string; endTime?: string
+  durationMinutes?: number; notes?: string; date: string
+  isEdited: boolean; editApprovedById?: string; createdAt: string
+}
 
 export interface AttendanceRecord {
   id: string; firmId: string; userId: string; date: string
