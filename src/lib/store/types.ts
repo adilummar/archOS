@@ -60,8 +60,13 @@ export interface Contractor {
   portalEnabled: boolean
 }
 
+export interface TemplateSubtask {
+  id: string; taskId: string; title: string; order: number;
+}
+
 export interface TemplateTask {
   id: string; stageId: string; title: string; description: string; order: number; priority: "low" | "normal" | "high";
+  subtasks?: TemplateSubtask[];
 }
 
 export interface TemplateStage {
@@ -77,6 +82,7 @@ export interface ProjectTemplate {
   stages: TemplateStage[]
   feeStructure: 'lump_sum' | 'percentage' | 'per_stage'
   defaultFileRequestWindowDays: number; isDefault: boolean
+  isArchived?: boolean; archivedAt?: string
 }
 
 export interface ProjectStage {
@@ -92,6 +98,7 @@ export interface ProjectStage {
     status: 'pending' | 'invoiced' | 'paid'; invoiceId?: string
   }
   description: string; drawingTypesExpected: FileCategory[]; isCustom: boolean
+  isArchived?: boolean; archivedAt?: string; updatedAt?: string
 }
 
 export interface Project {
@@ -115,21 +122,19 @@ export interface Subtask {
 export interface Task {
   id: string; firmId: string; projectId: string; stageId: string
   title: string; description?: string; assigneeId?: string; assignerId?: string
+  order?: number
   status: TaskStatus; priority: Priority; dueDate?: string
   startDate?: string; completedAt?: string
   approvalStatus?: ApprovalStatus; approvalNote?: string; approvedById?: string
   pendingChangeRequestId?: string; pendingVOId?: string
   subtasks: Subtask[]; tags?: string[]
+  reviewCycles?: any[]
   isBlocked: boolean; blockedReason?: string
+  isArchived?: boolean; archivedAt?: string
   createdAt: string; updatedAt: string
 }
 
-export interface TimeLog {
-  id: string; firmId: string; userId: string; projectId: string
-  stageId?: string; phase: string; startTime: string; endTime?: string
-  durationMinutes?: number; notes?: string; date: string
-  isEdited: boolean; editApprovedById?: string; createdAt: string
-}
+
 
 export interface AttendanceRecord {
   id: string; firmId: string; userId: string; date: string
